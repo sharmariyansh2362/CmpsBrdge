@@ -17,6 +17,8 @@ If you are developing a production application, we recommend using TypeScript wi
 
 ## How to Run
 
-1. npm install
-2. cd backend && npm install && cd ..
-3. npm run dev
+Step 1: npm install
+Step 2: cd backend
+Step 3: npm install
+Step 4: cd ..
+Step 5: npm run dev
