@@ -4,9 +4,11 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "predev": "npm install",
+    "predev:backend": "npm --prefix backend install",
     "dev:frontend": "vite",
     "dev:backend": "npm --prefix backend run dev",
-    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "dev": "npm --prefix backend install && concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
