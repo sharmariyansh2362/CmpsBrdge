@@ -124,7 +124,6 @@ router.get('/applications', async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
-
 router.put('/applications/:id/status', async (req, res) => {
   try {
     const { status } = req.body;
@@ -139,12 +138,28 @@ router.put('/applications/:id/status', async (req, res) => {
 
     if (error) return res.status(400).json({ error: error.message });
 
+    if (status === 'approved' && app.type === 'Course Enrollment') {
+      const courseName = app.description.split(":")[1]?.split(".")[0]?.trim();
+      const { data: course } = await supabase
+        .from("courses")
+        .select("id")
+        .ilike("name", `%${courseName}%`)
+        .single();
+
+      if (course) {
+        await supabase.from("student_courses").insert({
+          student_id: app.student_id,
+          course_id: course.id
+        });
+      }
+    }
+
     await logAction(req.user.id, `Set application ${req.params.id} to ${status}`);
     res.json(app);
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
-});
+})
 
 // Logs
 router.get('/logs', async (req, res) => {
@@ -156,6 +171,139 @@ router.get('/logs', async (req, res) => {
 
     if (error) return res.status(500).json({ error: error.message });
     res.json(logs);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.put("/applications/:id/approve", async (req, res) => {
+  try {
+    // Get application
+    const { data: app } = await supabase
+      .from("applications")
+      .select("*")
+      .eq("id", req.params.id)
+      .single();
+
+    if (!app) return res.status(404).json({ error: "Application not found" });
+
+    // Create user in users table
+    const { data: newUser, error: userError } = await supabase
+      .from("users")
+      .insert({
+        name: app.name,
+        email: app.email,
+        password: app.password,
+        role: app.role,
+        department: app.department
+      })
+      .select()
+      .single();
+
+    if (userError) return res.status(400).json({ error: userError.message });
+
+    // If student add to students table
+    if (app.role === "student") {
+      await supabase.from("students").insert({
+        user_id: newUser.id,
+        enrollment_no: app.enrollment_no,
+        semester: 1,
+        department: app.department || "General"
+      });
+    }
+
+    // If faculty add to faculty table
+    if (app.role === "faculty") {
+      // If course enrollment application
+      if (app.type === "Course Enrollment") {
+        const courseName = app.description.split(":")[1]?.split(".")[0]?.trim();
+        const { data: course } = await supabase
+          .from("courses")
+          .select("id")
+          .ilike("name", `%${courseName}%`)
+          .single();
+
+        if (course) {
+          await supabase
+            .from("student_courses")
+            .insert({
+              student_id: app.student_id,
+              course_id: course.id
+            });
+        }
+      }
+      await supabase.from("faculty").insert({
+        user_id: newUser.id,
+        employee_id: `F${Date.now()}`,
+        department: app.department || "General",
+        designation: "Assistant Professor"
+      });
+    }
+
+    // Update application status
+    await supabase
+      .from("applications")
+      .update({ status: "approved" })
+      .eq("id", req.params.id);
+
+    // Log action
+    await supabase.from("admin_logs").insert({
+      action: `Approved registration for ${app.email}`,
+      performed_by: req.user.id,
+      target_user: newUser.id
+    });
+
+res.json({ message: "User approved and created successfully!" });
+  } catch (err) {
+    console.error("Approve error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// Get all courses (for dropdown)
+router.get('/courses', async (req, res) => {
+  try {
+    const { data: courses, error } = await supabase.from('courses').select('id, name, code');
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(courses);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Assign a course to a student
+router.post('/users/:id/enroll', async (req, res) => {
+  try {
+    const { course_id } = req.body;
+    if (!course_id) return res.status(400).json({ error: 'course_id is required' });
+
+    // Find the student record linked to this user
+    const { data: student, error: studentErr } = await supabase
+      .from('students')
+      .select('id')
+      .eq('user_id', req.params.id)
+      .single();
+
+    if (studentErr || !student) return res.status(400).json({ error: 'This user is not a student' });
+
+    // Prevent duplicate enrollment
+    const { data: existing } = await supabase
+      .from('student_courses')
+      .select('id')
+      .eq('student_id', student.id)
+      .eq('course_id', course_id)
+      .single();
+
+    if (existing) return res.status(400).json({ error: 'Student already enrolled in this course' });
+
+    const { error: insertErr } = await supabase
+      .from('student_courses')
+      .insert({ student_id: student.id, course_id });
+
+    if (insertErr) return res.status(400).json({ error: insertErr.message });
+
+    await logAction(req.user.id, `Enrolled student (user ${req.params.id}) in course ${course_id}`);
+    res.json({ success: true, message: 'Course assigned successfully' });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }

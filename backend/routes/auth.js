@@ -28,7 +28,7 @@ router.post("/login", async (req, res) => {
         .select("*")
         .eq("email", email)
         .single();
-      
+
       if (error) {
         console.error("Supabase user email query error:", error);
       }
@@ -55,6 +55,9 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
+    if (req.body.role && user.role !== req.body.role) {
+      return res.status(401).json({ error: "Invalid credentials for this role" });
+    }
     console.log("Comparing password hashes...");
     const isMatch = await bcrypt.compare(password, user.password);
     console.log("bcrypt.compare result:", isMatch);
@@ -82,27 +85,49 @@ router.post("/login", async (req, res) => {
 });
 
 // POST /api/auth/logout
-router.post('/register', async (req, res) => {
+router.post("/register", async (req, res) => {
   try {
-    const { name, email, password, role, enrollment_no } = req.body;
+    const { name, email, password, role, enrollment_no, department } = req.body;
+
     if (!name || !email || !password) {
-      return res.status(400).json({ error: 'Name, email and password are required' });
+      return res.status(400).json({ error: "All fields required" });
     }
-    const existing = await supabase.from('users').select('id').eq('email', email).single();
-    if (existing.data) {
-      return res.status(409).json({ error: 'Email already registered' });
+
+    // Check if email already exists
+    const { data: existing } = await supabase
+      .from("users")
+      .select("id")
+      .eq("email", email)
+      .single();
+
+    if (existing) {
+      return res.status(409).json({ error: "Email already registered" });
     }
-    const hashed = await bcrypt.hash(password, 10);
-    const { data: user, error: userErr } = await supabase.from('users').insert({ name, email, password: hashed, role: role || 'student' }).single();
-    if (userErr) return res.status(500).json({ error: userErr.message });
-    if ((role || 'student') === 'student' && enrollment_no) {
-      await supabase.from('students').insert({ user_id: user.id, enrollment_no });
-    }
-    const { password: _, ...userWithoutPassword } = user;
-    res.status(201).json({ user: userWithoutPassword });
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Save to applications table as pending
+    const { error } = await supabase
+      .from("applications")
+      .insert({
+        name,
+        email,
+        password: hashedPassword,
+        role: role || "student",
+        enrollment_no,
+        department,
+        type: "registration",
+        description: `New ${role} registration request`,
+        status: "pending"
+      });
+
+    if (error) return res.status(400).json({ error: error.message });
+
+    res.status(201).json({ message: "Registration submitted! Wait for admin approval." });
   } catch (err) {
-    console.error('Register error:', err);
-    res.status(500).json({ error: 'Server error' });
+    console.error("Register error:", err);
+    res.status(500).json({ error: "Server error" });
   }
 });
 
@@ -122,6 +147,107 @@ router.get("/me", verifyToken, async (req, res) => {
     res.json(user);
   } catch (err) {
     console.error("Me error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// POST /api/auth/forgot-password
+router.post("/forgot-password", async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    const { data: user } = await supabase
+      .from("users")
+      .select("id, name, email")
+      .eq("email", email)
+      .single();
+
+    if (!user) {
+      return res.status(404).json({ error: "Email not found" });
+    }
+
+    // Generate OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Save OTP with timestamp as plain number
+    await supabase
+      .from("users")
+      .update({ 
+        reset_otp: otp, 
+        reset_otp_expiry: (Date.now() + 10 * 60 * 1000).toString()
+      })
+      .eq("id", user.id);
+
+    const { Resend } = require("resend");
+    const resend = new Resend(process.env.RESEND_API_KEY);
+
+    await resend.emails.send({
+      from: "onboarding@resend.dev",
+      to: email,
+      subject: "Campus Bridge - Password Reset OTP",
+      html: `
+        <h2>Password Reset</h2>
+        <p>Hi ${user.name},</p>
+        <p>Your OTP is: <h1>${otp}</h1></p>
+        <p>Valid for 10 minutes only.</p>
+      `
+    });
+
+    res.json({ message: "OTP sent!" });
+  } catch (err) {
+    console.error("Forgot password error:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// POST /api/auth/reset-password
+router.post("/reset-password", async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+
+    const { data: user } = await supabase
+      .from("users")
+      .select("id, reset_otp, reset_otp_expiry")
+      .eq("email", email)
+      .single();
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Check OTP
+    if (user.reset_otp !== otp) {
+      return res.status(400).json({ error: "Invalid OTP" });
+    }
+
+    // Check expiry using plain number comparison
+    const now = Date.now();
+    const expiry = parseInt(user.reset_otp_expiry);
+
+    console.log("Now:", now);
+    console.log("Expiry:", expiry);
+    console.log("Diff (seconds):", (expiry - now) / 1000);
+
+    if (now > expiry) {
+      return res.status(400).json({ error: "OTP expired" });
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update password
+    await supabase
+      .from("users")
+      .update({ 
+        password: hashedPassword,
+        reset_otp: null,
+        reset_otp_expiry: null
+      })
+      .eq("id", user.id);
+
+    res.json({ message: "Password reset successfully!" });
+  } catch (err) {
+    console.error("Reset password error:", err);
     res.status(500).json({ error: "Server error" });
   }
 });

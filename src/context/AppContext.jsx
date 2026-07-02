@@ -1,8 +1,5 @@
 import React, { createContext, useState, useEffect, useContext } from "react";
 
-// -------------------------------------------------
-//  GLOBAL CONTEXT
-// -------------------------------------------------
 export const AppContext = createContext();
 
 export const AppProvider = ({ children }) => {
@@ -14,7 +11,6 @@ export const AppProvider = ({ children }) => {
     return path.startsWith("http") ? path : `${BACKEND_URL}${path}`;
   };
 
-  // Auto‑login on refresh – read token & fetch user data
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
@@ -32,12 +28,11 @@ export const AppProvider = ({ children }) => {
     }
   }, []);
 
-  // Login – real API call
-  const login = async (email, password) => {
+  const login = async (email, password, role) => {
     const res = await fetch(buildUrl("/api/auth/login"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ email, password, role })
     });
     const data = await res.json();
     if (!res.ok) {
@@ -52,7 +47,6 @@ export const AppProvider = ({ children }) => {
     return { success: false, error: data.error };
   };
 
-  // Logout – clear token & state
   const logout = async () => {
     await fetch(buildUrl("/api/auth/logout"), {
       method: "POST",
@@ -62,7 +56,6 @@ export const AppProvider = ({ children }) => {
     setUser(null);
   };
 
-  // Helper for authenticated API calls
   const apiCall = async (path, options = {}) => {
     const token = localStorage.getItem("token");
     const url = buildUrl(path);

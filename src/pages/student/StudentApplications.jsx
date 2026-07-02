@@ -4,17 +4,15 @@ import { useApp } from "../../context/AppContext";
 import { Card, Btn, Badge, Input } from "../../components/ui";
 
 const BASE = "http://localhost:5000";
-const APP_TYPES = ["Leave Application", "Bonafide Certificate", "Fee Receipt", "Medical Leave", "Study Permission"];
-
-export default function StudentApplications() {
+const APP_TYPES = ["Leave Application", "Bonafide Certificate", "Fee Receipt", "Medical Leave", "Study Permission", "Course Enrollment"]; export default function StudentApplications() {
   const { apiCall } = useApp();
   const [apps, setApps] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [type, setType] = useState(APP_TYPES[0]);
+  const [courseName, setCourseName] = useState("");
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
   const fetchApps = async () => {
     try {
       setLoading(true);
@@ -38,7 +36,12 @@ export default function StudentApplications() {
       setSubmitting(true);
       await apiCall(BASE + "/api/student/applications", {
         method: "POST",
-        body: JSON.stringify({ type, description })
+        body: JSON.stringify({
+          type,
+          description: type === "Course Enrollment"
+            ? `Course Enrollment Request: ${courseName}. ${description}`
+            : description
+        })
       });
       setDescription("");
       setType(APP_TYPES[0]);
@@ -79,6 +82,17 @@ export default function StudentApplications() {
                 style={{ width: "100%", padding: "11px 14px", borderRadius: 10, border: "1.5px solid #EAEAEA", outline: "none", fontSize: 14 }}>
                 {APP_TYPES.map(t => <option key={t}>{t}</option>)}
               </select>
+              {type === "Course Enrollment" && (
+                <div style={{ marginTop: 12 }}>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: C.sub, display: "block", marginBottom: 6 }}>Course Name / Code</label>
+                  <input
+                    value={courseName}
+                    onChange={e => setCourseName(e.target.value)}
+                    placeholder="e.g. Data Structures CS201"
+                    style={{ width: "100%", padding: "11px 14px", borderRadius: 10, border: "1.5px solid #EAEAEA", outline: "none", fontSize: 14 }}
+                  />
+                </div>
+              )}
             </div>
             <div>
               <label style={{ fontSize: 12, fontWeight: 700, color: C.sub, display: "block", marginBottom: 6 }}>Details / Reason</label>

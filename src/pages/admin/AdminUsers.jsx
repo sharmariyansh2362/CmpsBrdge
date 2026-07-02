@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, Fragment } from "react";
 import { C } from "../../constants/colors";
 import { useApp } from "../../context/AppContext";
 import { Card, Btn, Input } from "../../components/ui";
@@ -12,13 +12,18 @@ export default function AdminUsers() {
   // Form states
   const [showAddForm, setShowAddForm] = useState(false);
   const [editId, setEditId] = useState(null);
-  
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("student");
   const [dept, setDept] = useState("CSE");
   const [extraId, setExtraId] = useState("");
+
+  // Course enrollment states
+  const [courses, setCourses] = useState([]);
+  const [enrollUserId, setEnrollUserId] = useState(null);
+  const [selectedCourse, setSelectedCourse] = useState("");
 
   const fetchUsers = async () => {
     try {
@@ -32,8 +37,18 @@ export default function AdminUsers() {
     }
   };
 
+  const fetchCourses = async () => {
+    try {
+      const data = await apiCall("http://localhost:5000/api/admin/courses");
+      setCourses(data);
+    } catch (err) {
+      console.error("Failed to load courses:", err);
+    }
+  };
+
   useEffect(() => {
     fetchUsers();
+    fetchCourses();
   }, [apiCall]);
 
   const handleCreate = async (e) => {
@@ -73,6 +88,21 @@ export default function AdminUsers() {
         method: "DELETE"
       });
       fetchUsers();
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
+  const handleEnroll = async (userId) => {
+    if (!selectedCourse) return alert("Please select a course");
+    try {
+      await apiCall(`http://localhost:5000/api/admin/users/${userId}/enroll`, {
+        method: "POST",
+        body: JSON.stringify({ course_id: selectedCourse })
+      });
+      alert("Course assigned successfully!");
+      setEnrollUserId(null);
+      setSelectedCourse("");
     } catch (err) {
       alert(err.message);
     }
@@ -161,22 +191,44 @@ export default function AdminUsers() {
           </thead>
           <tbody>
             {users.map(u => (
-              <tr key={u.id} style={{ borderBottom: '1px solid #FAFAFA' }}>
-                <td style={{ padding: 12, fontWeight: 600 }}>{u.name}</td>
-                <td style={{ padding: 12 }}>{u.email}</td>
-                <td style={{ padding: 12 }}>
-                  <span style={{
-                    fontSize: 11, fontWeight: 800, padding: '3px 8px', borderRadius: 6,
-                    background: u.role === 'admin' ? '#FCE7F3' : u.role === 'faculty' ? '#FFF3E0' : '#F8F7FF',
-                    color: u.role === 'admin' ? '#DB2777' : u.role === 'faculty' ? '#F57C00' : '#6C5CE7'
-                  }}>{u.role}</span>
-                </td>
-                <td style={{ padding: 12 }}>{u.department || '—'}</td>
-                <td style={{ padding: 12, textAlign: 'right' }}>
-                  <button onClick={() => startEdit(u)} style={{ marginRight: 12, background: 'none', border: 'none', color: '#6C5CE7', fontWeight: 700, cursor: 'pointer' }}>Edit</button>
-                  <button onClick={() => handleDelete(u.id)} style={{ background: 'none', border: 'none', color: '#EF4444', fontWeight: 700, cursor: 'pointer' }}>Delete</button>
-                </td>
-              </tr>
+              <Fragment key={u.id}>
+                <tr style={{ borderBottom: '1px solid #FAFAFA' }}>
+                  <td style={{ padding: 12, fontWeight: 600 }}>{u.name}</td>
+                  <td style={{ padding: 12 }}>{u.email}</td>
+                  <td style={{ padding: 12 }}>
+                    <span style={{
+                      fontSize: 11, fontWeight: 800, padding: '3px 8px', borderRadius: 6,
+                      background: u.role === 'admin' ? '#FCE7F3' : u.role === 'faculty' ? '#FFF3E0' : '#F8F7FF',
+                      color: u.role === 'admin' ? '#DB2777' : u.role === 'faculty' ? '#F57C00' : '#6C5CE7'
+                    }}>{u.role}</span>
+                  </td>
+                  <td style={{ padding: 12 }}>{u.department || '—'}</td>
+                  <td style={{ padding: 12, textAlign: 'right' }}>
+                    {u.role === 'student' && (
+                      <button onClick={() => setEnrollUserId(enrollUserId === u.id ? null : u.id)} style={{ marginRight: 12, background: 'none', border: 'none', color: '#10B981', fontWeight: 700, cursor: 'pointer' }}>Add Course</button>
+                    )}
+                    <button onClick={() => startEdit(u)} style={{ marginRight: 12, background: 'none', border: 'none', color: '#6C5CE7', fontWeight: 700, cursor: 'pointer' }}>Edit</button>
+                    <button onClick={() => handleDelete(u.id)} style={{ background: 'none', border: 'none', color: '#EF4444', fontWeight: 700, cursor: 'pointer' }}>Delete</button>
+                  </td>
+                </tr>
+                {enrollUserId === u.id && (
+                  <tr>
+                    <td colSpan={5} style={{ padding: 12, background: '#F8F9FA' }}>
+                      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                        <select value={selectedCourse} onChange={e => setSelectedCourse(e.target.value)}
+                          style={{ padding: '8px 12px', borderRadius: 8, border: '1.5px solid #EAEAEA', outline: 'none', flex: 1 }}>
+                          <option value="">Select a course</option>
+                          {courses.map(c => (
+                            <option key={c.id} value={c.id}>{c.code} — {c.name}</option>
+                          ))}
+                        </select>
+                        <Btn color="#10B981" onClick={() => handleEnroll(u.id)}>Assign</Btn>
+                        <Btn color="#6F767E" onClick={() => { setEnrollUserId(null); setSelectedCourse(""); }}>Cancel</Btn>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </Fragment>
             ))}
           </tbody>
         </table>

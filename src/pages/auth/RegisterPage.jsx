@@ -22,25 +22,29 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleRegister = async (e) => {
-    e.preventDefault();
-    if (!name || !email || !password) return setError("All fields are required");
-    if (role === "student" && !enrollment) return setError("Enrollment number required for students");
-    try {
-      setLoading(true);
-      const body = { name, email, password, role };
-      if (role === "student") body.enrollment_no = enrollment;
-      await apiCall("http://localhost:5000/api/auth/register", { method: "POST", body: JSON.stringify(body) });
-      navigate("/login");
-    } catch (err) {
-      setError(err.message || "Registration failed");
-    } finally {
-      setLoading(false);
-    }
-  };
+const handleRegister = async (e) => {
+  e.preventDefault();
+  if (!name || !email || !password) return setError("All fields required");
+  if (role === "student" && !enrollment) return setError("Enrollment number required");
+  try {
+    setLoading(true);
+    const body = { name, email, password, role };
+    if (role === "student") body.enrollment_no = enrollment;
+    await apiCall("/api/auth/register", { 
+      method: "POST", 
+      body: JSON.stringify(body) 
+    });
+    alert("Registration submitted! Wait for admin approval.");
+    navigate("/login");
+  } catch (err) {
+    setError(err.message || "Registration failed");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
-    <div className="cb-login-page">
+    <div className="cb-login-page">~
       <div className="cb-login-form">
         <div className="cb-login-form-inner">
           <div style={{ textAlign: "center", marginBottom: 24 }}>

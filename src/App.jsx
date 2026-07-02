@@ -1,3 +1,7 @@
+import RegisterPage from "./pages/auth/RegisterPage";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+
+
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { AppProvider, useApp } from "./context/AppContext";
 import { Shell } from "./Components/layout/Shell";
@@ -5,8 +9,6 @@ import "./App.css";
 
 // Auth Pages
 import LoginPage from "./pages/auth/LoginPage";
-import RegisterPage from "./pages/auth/RegisterPage";
-
 // Shared Pages
 import AnnouncementsPage from "./pages/shared/AnnouncementsPage";
 import ChannelsPage from "./pages/shared/ChannelsPage";
@@ -97,6 +99,7 @@ export default function App() {
           {/* Public Auth Route */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
 
           {/* Student Role Routes */}
           <Route element={<ProtectedRoute allowedRole="student" />}>

@@ -6,22 +6,22 @@ import { Icons } from "../../components/Icons";
 import { Input, Btn, Modal } from "../../components/ui";
 
 const ROLES = [
-  { key: "student", label: "Student", desc: "Login with Roll Number", I: Icons.User,    color: C.primary },
-  { key: "faculty", label: "Faculty", desc: "Login with College Email", I: Icons.BookOpen, color: C.orange  },
-  { key: "admin",   label: "Admin",   desc: "System Administration",    I: Icons.Shield,  color: C.pink    },
+  { key: "student", label: "Student", desc: "Login with Roll Number", I: Icons.User, color: C.primary },
+  { key: "faculty", label: "Faculty", desc: "Login with College Email", I: Icons.BookOpen, color: C.orange },
+  { key: "admin", label: "Admin", desc: "System Administration", I: Icons.Shield, color: C.pink },
 ];
 
-const DEPTS = ["CSE","MBA","LAW","MED","MECH","CIVIL","ECE","PHARMACY"];
+const DEPTS = ["CSE", "MBA", "LAW", "MED", "MECH", "CIVIL", "ECE", "PHARMACY"];
 
 export default function LoginPage() {
   const { login } = useApp();
-  const navigate  = useNavigate();
+  const navigate = useNavigate();
 
-  const [role,       setRole]       = useState("student");
+  const [role, setRole] = useState("student");
   const [identifier, setIdentifier] = useState("");
-  const [password,   setPassword]   = useState("");
-  const [error,      setError]      = useState("");
-  const [isLoading,  setIsLoading]  = useState(false);
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async () => {
     if (!identifier.trim() || !password.trim()) {
@@ -31,7 +31,7 @@ export default function LoginPage() {
     setError("");
     setIsLoading(true);
     try {
-      const data = await login(identifier.trim(), password.trim());
+      const data = await login(identifier.trim(), password.trim(), role);
       if (data.user) {
         navigate(`/${data.user.role}/dashboard`);
       }
@@ -65,7 +65,7 @@ export default function LoginPage() {
         </p>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, width: "100%" }}>
-          {[["12,000+","Students"],["100+","Programs"],["800+","Faculty"],["NAAC A","Ranked"]].map(([v, l]) => (
+          {[["12,000+", "Students"], ["100+", "Programs"], ["800+", "Faculty"], ["NAAC A", "Ranked"]].map(([v, l]) => (
             <div key={l} style={{
               background: "rgba(255,255,255,0.15)", borderRadius: 14,
               padding: "14px 12px", textAlign: "center",
@@ -145,7 +145,7 @@ export default function LoginPage() {
               value={password} onChange={setPassword}
               icon={<Icons.Lock size={14} color={C.sub} />} />
             <div style={{ textAlign: "right" }}>
-              <button style={{ fontSize: 12, fontWeight: 700, color: C.primary, background: "none", border: "none", cursor: "pointer" }}>
+              <button onClick={() => navigate("/forgot-password")} style={{ fontSize: 12, fontWeight: 700, color: C.primary, background: "none", border: "none", cursor: "pointer" }}>
                 Forgot password?
               </button>
             </div>

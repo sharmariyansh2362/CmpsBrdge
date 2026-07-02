@@ -211,7 +211,7 @@ export const LOST_FOUND_ITEMS = [
   { id: 4, type: "found", title: "Wireless Earbuds – Black",  desc: "Found in the parking area near Block A.",                                 postedBy: "Arjun M.",     rollNo: "2022CSE010", date: "Jun 20", color: C.success, found: false },
   { id: 5, type: "lost",  title: "Grey KRMU Hoodie",          desc: "Left in Lab 204, CSE Department after OS lab session.",                   postedBy: "Karan Singh",  rollNo: "2022CSE055", date: "Jun 20", color: C.warning, found: true  },
   { id: 6, type: "found", title: "Scientific Calculator – Casio", desc: "Found in Room 301 after Discrete Maths class.",                       postedBy: "Nisha V.",     rollNo: "2022CSE028", date: "Jun 19", color: C.success, found: false },
-];
+]; 
 
 // ─── Navigation config ────────────────────────────────────────────────────────
 export const NAV_ITEMS = {
@@ -219,6 +219,7 @@ export const NAV_ITEMS = {
     { id: "dashboard",     label: "Dashboard",             icon: "Dashboard",  badge: null },
     { id: "announcements", label: "Announcements & Events",icon: "Bell",       badge: 2    },
     { id: "courses",       label: "My Courses",            icon: "BookOpen",   badge: null },
+    { id: "applications",  label: "Applications",          icon: "FileText",   badge: null },
     { id: "channels",      label: "Classroom Channels",    icon: "Hash",       badge: 1    },
     { id: "lost-found",    label: "Lost & Found",          icon: "Package",    badge: null },
     { id: "profile",       label: "My Profile",            icon: "User",       badge: null },
