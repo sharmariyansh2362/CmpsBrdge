@@ -29,7 +29,7 @@ const handleRegister = async (e) => {
   try {
     setLoading(true);
     const body = { name, email, password, role };
-    if (role === "student") body.roll_number = enrollment;
+if (role === "student") body.enrollment_no = enrollment;
     const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || "http://localhost:5000"}/api/auth/register`, {
   method: "POST",
   headers: { "Content-Type": "application/json" },
