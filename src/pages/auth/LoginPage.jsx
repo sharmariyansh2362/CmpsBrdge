@@ -2,8 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { C, ROLE_COLORS, ROLE_LABELS } from "../../constants/colors";
 import { useApp } from "../../context/AppContext";
-import { Icons } from "../../components/Icons";
-import { Input, Btn, Modal } from "../../components/ui";
+import { Icons } from "../../Components/Icons";
+import { Input, Btn, Modal } from "../../Components/ui";
 
 const ROLES = [
   { key: "student", label: "Student", desc: "Login with Roll Number", I: Icons.User, color: C.primary },

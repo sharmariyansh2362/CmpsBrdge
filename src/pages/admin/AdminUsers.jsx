@@ -1,7 +1,7 @@
 import { useState, useEffect, Fragment } from "react";
 import { C } from "../../constants/colors";
 import { useApp } from "../../context/AppContext";
-import { Card, Btn, Input } from "../../components/ui";
+import { Card, Btn, Input } from "../../Components/ui";
 
 export default function AdminUsers() {
   const { apiCall } = useApp();
@@ -28,7 +28,7 @@ export default function AdminUsers() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const data = await apiCall("http://localhost:5000/api/admin/users");
+      const data = await apiCall("/api/admin/users");
       setUsers(data);
     } catch (err) {
       setError(err.message || "Failed to load users");
@@ -39,7 +39,7 @@ export default function AdminUsers() {
 
   const fetchCourses = async () => {
     try {
-      const data = await apiCall("http://localhost:5000/api/admin/courses");
+      const data = await apiCall("/api/admin/courses");
       setCourses(data);
     } catch (err) {
       console.error("Failed to load courses:", err);
@@ -54,7 +54,7 @@ export default function AdminUsers() {
   const handleCreate = async (e) => {
     e.preventDefault();
     try {
-      await apiCall("http://localhost:5000/api/admin/users", {
+      await apiCall("/api/admin/users", {
         method: "POST",
         body: JSON.stringify({ name, email, password, role, department: dept, extraId })
       });
@@ -69,7 +69,7 @@ export default function AdminUsers() {
   const handleUpdate = async (e) => {
     e.preventDefault();
     try {
-      await apiCall(`http://localhost:5000/api/admin/users/${editId}`, {
+      await apiCall(`/api/admin/users/${editId}`, {
         method: "PUT",
         body: JSON.stringify({ name, email, role, department: dept })
       });
@@ -84,7 +84,7 @@ export default function AdminUsers() {
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this user?")) return;
     try {
-      await apiCall(`http://localhost:5000/api/admin/users/${id}`, {
+      await apiCall(`/api/admin/users/${id}`, {
         method: "DELETE"
       });
       fetchUsers();
@@ -96,7 +96,7 @@ export default function AdminUsers() {
   const handleEnroll = async (userId) => {
     if (!selectedCourse) return alert("Please select a course");
     try {
-      await apiCall(`http://localhost:5000/api/admin/users/${userId}/enroll`, {
+      await apiCall(`/api/admin/users/${userId}/enroll`, {
         method: "POST",
         body: JSON.stringify({ course_id: selectedCourse })
       });

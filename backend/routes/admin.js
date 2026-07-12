@@ -59,7 +59,7 @@ router.post('/users', async (req, res) => {
     if (role === 'student') {
       await supabase.from('students').insert({
         user_id: user.id,
-        enrollment_no: extraId || 'STU' + Date.now().toString().slice(-6),
+        roll_number: extraId || 'STU' + Date.now().toString().slice(-6),
         semester: 1,
         department
       });
@@ -206,7 +206,7 @@ router.put("/applications/:id/approve", async (req, res) => {
     if (app.role === "student") {
       await supabase.from("students").insert({
         user_id: newUser.id,
-        enrollment_no: app.enrollment_no,
+        roll_number: app.roll_number || app.enrollment_no,
         semester: 1,
         department: app.department || "General"
       });

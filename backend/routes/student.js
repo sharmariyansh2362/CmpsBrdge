@@ -65,7 +65,7 @@ router.get('/profile', async (req, res) => {
       email: student.users.email,
       department: student.department,
       semester: student.semester,
-      enrollment_no: student.enrollment_no
+      enrollment_no: student.roll_number || student.rollNo || student.enrollment_no
     });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });

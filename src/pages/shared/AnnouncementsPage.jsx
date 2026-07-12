@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { C } from "../../constants/colors";
 import { useApp } from "../../context/AppContext";
-import { Icons } from "../../components/Icons";
-import { Card, Btn, Badge } from "../../components/ui";
+import { Icons } from "../../Components/Icons";
+import { Card, Btn, Badge } from "../../Components/ui";
 
-const BASE = "http://localhost:5000";
+const BASE = "";
 
 export default function AnnouncementsPage() {
   const { user, apiCall } = useApp();

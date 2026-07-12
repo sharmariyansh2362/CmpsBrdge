@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { C } from "../../constants/colors";
-import { Input, Btn } from "../../components/ui";
+import { Input, Btn } from "../../Components/ui";
 
 export default function ForgotPassword() {
   const navigate = useNavigate();
@@ -18,8 +18,7 @@ export default function ForgotPassword() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("http://localhost:5000/api/auth/forgot-password", {
-        method: "POST",
+const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || "http://localhost:5000"}/api/auth/forgot-password`, {        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email })
       });
@@ -39,8 +38,7 @@ export default function ForgotPassword() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("http://localhost:5000/api/auth/reset-password", {
-        method: "POST",
+const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || "http://localhost:5000"}/api/auth/reset-password`, {        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, otp, newPassword })
       });

@@ -219,25 +219,115 @@ export const NAV_ITEMS = {
     { id: "dashboard",     label: "Dashboard",             icon: "Dashboard",  badge: null },
     { id: "announcements", label: "Announcements & Events",icon: "Bell",       badge: 2    },
     { id: "courses",       label: "My Courses",            icon: "BookOpen",   badge: null },
-    { id: "applications",  label: "Applications",          icon: "FileText",   badge: null },
+    { id: "academic",      label: "Academic Performance",  icon: "BarChart",   badge: null },
+    { id: "attendance",    label: "Attendance",             icon: "CheckCircle",badge: null },
+    { id: "timetable",     label: "Timetable",             icon: "Calendar",   badge: null },
     { id: "channels",      label: "Classroom Channels",    icon: "Hash",       badge: 1    },
+    { id: "placements",    label: "Placement Cell",        icon: "Briefcase",  badge: null },
     { id: "lost-found",    label: "Lost & Found",          icon: "Package",    badge: null },
+    { id: "applications",  label: "Applications",          icon: "FileText",   badge: null },
     { id: "profile",       label: "My Profile",            icon: "User",       badge: null },
+    { id: "settings",      label: "Settings",              icon: "Settings",   badge: null },
   ],
   faculty: [
     { id: "dashboard",     label: "Dashboard",             icon: "Dashboard",  badge: null },
     { id: "announcements", label: "Announcements",         icon: "Bell",       badge: null },
     { id: "courses",       label: "My Courses",            icon: "BookMark",   badge: 8    },
     { id: "students",      label: "All Students",          icon: "Users",      badge: null },
+    { id: "attendance",    label: "Attendance",             icon: "CheckCircle",badge: null },
+    { id: "timetable",     label: "Timetable",             icon: "Calendar",   badge: null },
     { id: "channels",      label: "Class Channels",        icon: "Hash",       badge: null },
+    { id: "placements",    label: "Placement Cell",        icon: "Briefcase",  badge: null },
     { id: "lost-found",    label: "Lost & Found",          icon: "Package",    badge: null },
     { id: "profile",       label: "My Profile",            icon: "User",       badge: null },
+    { id: "settings",      label: "Settings",              icon: "Settings",   badge: null },
   ],
   admin: [
     { id: "dashboard",     label: "Dashboard",             icon: "Dashboard",  badge: null },
     { id: "users",         label: "Manage Users",          icon: "Users",      badge: null },
     { id: "applications",  label: "Applications",          icon: "FileText",   badge: 3    },
-    { id: "logs",          label: "System Logs",           icon: "Activity",   badge: null },
+    { id: "announcements", label: "Announcements",         icon: "Bell",       badge: null },
+    { id: "academic",      label: "Academic Performance",  icon: "BarChart",   badge: null },
+    { id: "placements",    label: "Placement Cell",        icon: "Briefcase",  badge: null },
+    { id: "channels",      label: "Channels",              icon: "Hash",       badge: null },
     { id: "lost-found",    label: "Lost & Found (Mod.)",   icon: "Package",    badge: null },
+    { id: "logs",          label: "System Logs",           icon: "Activity",   badge: null },
+    { id: "settings",      label: "Settings",              icon: "Settings",   badge: null },
   ],
 };
+
+// ─── Placement Demo Data ──────────────────────────────────────────────────────
+export const PLACEMENT_DRIVES = [
+  {
+    id: "PD001", company: "Google", logo: "G", role: "SDE Intern",
+    package: "₹45 LPA", type: "Internship", deadline: "Jul 15, 2025",
+    status: "upcoming", eligible: ["CSE", "IT", "ECE"], minCGPA: 8.0,
+    description: "Google Summer Internship 2025. 6-month internship in Bangalore office.",
+    color: "#4285F4",
+  },
+  {
+    id: "PD002", company: "Microsoft", logo: "M", role: "Software Engineer",
+    package: "₹38 LPA", type: "Full-time", deadline: "Jul 20, 2025",
+    status: "upcoming", eligible: ["CSE", "IT"], minCGPA: 7.5,
+    description: "Full-time SDE role at Microsoft India Development Center, Hyderabad.",
+    color: "#00A4EF",
+  },
+  {
+    id: "PD003", company: "Infosys", logo: "I", role: "Systems Engineer",
+    package: "₹6.5 LPA", type: "Full-time", deadline: "Jul 10, 2025",
+    status: "ongoing", eligible: ["CSE", "IT", "ECE", "ME"], minCGPA: 6.0,
+    description: "Infosys campus hiring for B.Tech graduates across all branches.",
+    color: "#007CC3",
+  },
+  {
+    id: "PD004", company: "TCS", logo: "T", role: "Digital Engineer",
+    package: "₹7.5 LPA", type: "Full-time", deadline: "Jul 5, 2025",
+    status: "completed", eligible: ["CSE", "IT", "ECE"], minCGPA: 6.5,
+    description: "TCS Digital hiring. Aptitude test followed by technical + HR interview.",
+    color: "#1A73E8",
+  },
+  {
+    id: "PD005", company: "Amazon", logo: "A", role: "SDE-1",
+    package: "₹32 LPA", type: "Full-time", deadline: "Jul 25, 2025",
+    status: "upcoming", eligible: ["CSE", "IT"], minCGPA: 7.0,
+    description: "Amazon SDE-1 hiring. Online assessment + 3 technical rounds.",
+    color: "#FF9900",
+  },
+];
+
+// ─── Academic Performance Demo Data ───────────────────────────────────────────
+export const ACADEMIC_SEMESTERS = [
+  { semester: 1, sgpa: 8.2, totalCredits: 24 },
+  { semester: 2, sgpa: 8.5, totalCredits: 24 },
+  { semester: 3, sgpa: 7.9, totalCredits: 22 },
+  { semester: 4, sgpa: 8.8, totalCredits: 22 },
+  { semester: 5, sgpa: 8.7, totalCredits: 0 },
+];
+
+export const ACADEMIC_GRADES = [
+  { course: "CS501", name: "Data Structures & Algorithms", credits: 4, grade: "A", gradePoint: 9, internal: 38, external: 72, total: 110, semester: 5 },
+  { course: "MATH303", name: "Discrete Mathematics", credits: 3, grade: "B+", gradePoint: 8, internal: 34, external: 60, total: 94, semester: 5 },
+  { course: "CS502", name: "Operating Systems", credits: 4, grade: "B", gradePoint: 7, internal: 30, external: 52, total: 82, semester: 5 },
+  { course: "ENG201", name: "Technical Communication", credits: 2, grade: "A+", gradePoint: 10, internal: 42, external: 88, total: 130, semester: 5 },
+  { course: "CS401", name: "Database Management", credits: 4, grade: "A", gradePoint: 9, internal: 36, external: 70, total: 106, semester: 4 },
+  { course: "CS402", name: "Computer Networks", credits: 4, grade: "A+", gradePoint: 10, internal: 40, external: 82, total: 122, semester: 4 },
+  { course: "MATH301", name: "Linear Algebra", credits: 3, grade: "A", gradePoint: 9, internal: 37, external: 68, total: 105, semester: 4 },
+];
+
+// ─── Social Links Platforms ───────────────────────────────────────────────────
+export const SOCIAL_PLATFORMS = [
+  { key: "github",   label: "GitHub",     color: "#333",     icon: "GitHub" },
+  { key: "linkedin", label: "LinkedIn",   color: "#0A66C2",  icon: "Linkedin" },
+  { key: "twitter",  label: "Twitter/X",  color: "#1DA1F2",  icon: "Twitter" },
+  { key: "leetcode", label: "LeetCode",   color: "#FFA116",  icon: "Code" },
+  { key: "portfolio",label: "Portfolio",   color: "#6C63FF",  icon: "Globe" },
+  { key: "kaggle",   label: "Kaggle",     color: "#20BEFF",  icon: "Database" },
+];
+
+export const DEMO_SOCIAL_LINKS = [
+  { platform: "github",   url: "https://github.com/arjunmehta",   username: "arjunmehta" },
+  { platform: "linkedin", url: "https://linkedin.com/in/arjunmehta", username: "arjunmehta" },
+  { platform: "leetcode", url: "https://leetcode.com/arjunmehta",  username: "arjunmehta" },
+  { platform: "portfolio", url: "https://arjunmehta.dev",          username: "arjunmehta.dev" },
+];
+

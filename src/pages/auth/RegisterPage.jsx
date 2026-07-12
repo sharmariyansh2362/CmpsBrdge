@@ -2,8 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { C } from "../../constants/colors";
 import { useApp } from "../../context/AppContext";
-import { Icons } from "../../components/Icons";
-import { Input, Btn } from "../../components/ui";
+import { Icons } from "../../Components/Icons";
+import { Input, Btn } from "../../Components/ui";
 
 const ROLES = [
   { key: "student", label: "Student", color: C.primary },
@@ -25,15 +25,18 @@ export default function RegisterPage() {
 const handleRegister = async (e) => {
   e.preventDefault();
   if (!name || !email || !password) return setError("All fields required");
-  if (role === "student" && !enrollment) return setError("Enrollment number required");
+  if (role === "student" && !enrollment) return setError("Roll Number required");
   try {
     setLoading(true);
     const body = { name, email, password, role };
-    if (role === "student") body.enrollment_no = enrollment;
-    await apiCall("/api/auth/register", { 
-      method: "POST", 
-      body: JSON.stringify(body) 
-    });
+    if (role === "student") body.roll_number = enrollment;
+    const res = await fetch(`${import.meta.env.VITE_BACKEND_URL || "http://localhost:5000"}/api/auth/register`, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(body)
+});
+const data = await res.json();
+if (!res.ok) throw new Error(data.error || "Registration failed");
     alert("Registration submitted! Wait for admin approval.");
     navigate("/login");
   } catch (err) {
@@ -44,7 +47,7 @@ const handleRegister = async (e) => {
 };
 
   return (
-    <div className="cb-login-page">~
+    <div className="cb-login-page">
       <div className="cb-login-form">
         <div className="cb-login-form-inner">
           <div style={{ textAlign: "center", marginBottom: 24 }}>
@@ -85,7 +88,7 @@ const handleRegister = async (e) => {
           <Input label="Email" type="email" value={email} onChange={setEmail} />
           <Input label="Password" type="password" value={password} onChange={setPassword} />
           {role === "student" && (
-            <Input label="Enrollment No" value={enrollment} onChange={setEnrollment} />
+            <Input label="Roll Number" value={enrollment} onChange={setEnrollment} />
           )}
 
           <Btn onClick={handleRegister} disabled={loading} color={C.primary} full>

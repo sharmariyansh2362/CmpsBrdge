@@ -19,8 +19,18 @@
   display: flex;
   flex-direction: column;
   z-index: 50;
-  transition: transform 0.3s ease;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.cb-sidebar.collapsed {
+  width: 70px;
+}
+
+.cb-sidebar-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+  color: #fff !important;
 }
 
 .cb-sidebar-close-btn {
@@ -55,7 +65,14 @@
   min-height: 100vh;
   min-width: 0;
   width: calc(100% - 230px);
+  transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1), width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
+.cb-main.collapsed {
+  margin-left: 70px;
+  width: calc(100% - 70px);
+}
+
 
 .cb-topbar {
   display: flex;

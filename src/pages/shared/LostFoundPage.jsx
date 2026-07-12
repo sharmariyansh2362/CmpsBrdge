@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import { C } from "../../constants/colors";
 import { useApp } from "../../context/AppContext";
-import { Icons } from "../../components/Icons";
-import { Btn, Badge, Input, Modal, Card } from "../../components/ui";
+import { Icons } from "../../Components/Icons";
+import { Btn, Badge, Input, Modal, Card } from "../../Components/ui";
 
-const BASE = "http://localhost:5000";
+const BASE = "";
 
 export default function LostFoundPage() {
   const { user, apiCall } = useApp();

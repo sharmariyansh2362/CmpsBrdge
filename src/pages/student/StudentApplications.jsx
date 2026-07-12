@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { C } from "../../constants/colors";
 import { useApp } from "../../context/AppContext";
-import { Card, Btn, Badge, Input } from "../../components/ui";
+import { Card, Btn, Badge, Input } from "../../Components/ui";
 
-const BASE = "http://localhost:5000";
+const BASE = "";
 const APP_TYPES = ["Leave Application", "Bonafide Certificate", "Fee Receipt", "Medical Leave", "Study Permission", "Course Enrollment"]; export default function StudentApplications() {
   const { apiCall } = useApp();
   const [apps, setApps] = useState([]);

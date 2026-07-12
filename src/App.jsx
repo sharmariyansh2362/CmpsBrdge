@@ -1,7 +1,6 @@
 import RegisterPage from "./pages/auth/RegisterPage";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 
-
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { AppProvider, useApp } from "./context/AppContext";
 import { Shell } from "./Components/layout/Shell";
@@ -13,6 +12,11 @@ import LoginPage from "./pages/auth/LoginPage";
 import AnnouncementsPage from "./pages/shared/AnnouncementsPage";
 import ChannelsPage from "./pages/shared/ChannelsPage";
 import LostFoundPage from "./pages/shared/LostFoundPage";
+import PlacementsPage from "./pages/shared/PlacementsPage";
+import AcademicPerformancePage from "./pages/shared/AcademicPerformancePage";
+import TimetablePage from "./pages/shared/TimetablePage";
+import AttendancePage from "./pages/shared/AttendancePage";
+import SettingsPage from "./pages/shared/SettingsPage";
 
 // Student Pages
 import StudentDashboard from "./pages/student/StudentDashboard";
@@ -107,10 +111,15 @@ export default function App() {
               <Route path="/student/dashboard" element={<StudentDashboard />} />
               <Route path="/student/announcements" element={<AnnouncementsPage />} />
               <Route path="/student/courses" element={<StudentCourses />} />
+              <Route path="/student/academic" element={<AcademicPerformancePage />} />
+              <Route path="/student/attendance" element={<AttendancePage />} />
+              <Route path="/student/timetable" element={<TimetablePage />} />
               <Route path="/student/channels" element={<ChannelsPage />} />
+              <Route path="/student/placements" element={<PlacementsPage />} />
               <Route path="/student/lost-found" element={<LostFoundPage />} />
               <Route path="/student/applications" element={<StudentApplications />} />
               <Route path="/student/profile" element={<StudentProfile />} />
+              <Route path="/student/settings" element={<SettingsPage />} />
             </Route>
           </Route>
 
@@ -121,9 +130,13 @@ export default function App() {
               <Route path="/faculty/announcements" element={<AnnouncementsPage />} />
               <Route path="/faculty/courses" element={<FacultyCourses />} />
               <Route path="/faculty/students" element={<FacultyStudents />} />
+              <Route path="/faculty/attendance" element={<AttendancePage />} />
+              <Route path="/faculty/timetable" element={<TimetablePage />} />
               <Route path="/faculty/channels" element={<ChannelsPage />} />
+              <Route path="/faculty/placements" element={<PlacementsPage />} />
               <Route path="/faculty/lost-found" element={<LostFoundPage />} />
               <Route path="/faculty/profile" element={<FacultyProfile />} />
+              <Route path="/faculty/settings" element={<SettingsPage />} />
             </Route>
           </Route>
 
@@ -133,10 +146,13 @@ export default function App() {
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
               <Route path="/admin/users" element={<AdminUsers />} />
               <Route path="/admin/applications" element={<AdminApplications />} />
-              <Route path="/admin/logs" element={<AdminLogs />} />
+              <Route path="/admin/announcements" element={<AnnouncementsPage />} />
+              <Route path="/admin/academic" element={<AcademicPerformancePage />} />
+              <Route path="/admin/placements" element={<PlacementsPage />} />
               <Route path="/admin/channels" element={<ChannelsPage />} />
               <Route path="/admin/lost-found" element={<LostFoundPage />} />
-              <Route path="/admin/announcements" element={<AnnouncementsPage />} />
+              <Route path="/admin/logs" element={<AdminLogs />} />
+              <Route path="/admin/settings" element={<SettingsPage />} />
             </Route>
           </Route>
 

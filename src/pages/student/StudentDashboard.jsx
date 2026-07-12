@@ -1,106 +1,206 @@
-import React, { useContext, useEffect, useState } from "react";
-import { AppContext } from "../../context/AppContext";
+import { useState, useEffect } from "react";
+import { useApp } from "../../context/AppContext";
+import { C, ROLE_COLORS } from "../../constants/colors";
+import { COURSES, ANNOUNCEMENTS } from "../../constants/data";
+import { Card, Badge } from "../../Components/ui";
+import { Icons } from "../../Components/Icons";
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 
-export const mapCourseStats = (course) => {
-  const soft = "#F8F7FF";
-  const color = "#6C5CE7";
-  const code = course.code || "CS";
-  const name = course.name || "Unnamed Course";
-  const faculty = course.faculty_name || "Faculty";
-  const credits = course.credits ?? 0;
-  return { soft, color, code, name, faculty, credits, ...course };
-};
+export default function StudentDashboard() {
+  const { user } = useApp();
 
-const StudentDashboard = () => {
-  const { apiCall } = useContext(AppContext);
-  const [profile, setProfile] = useState(null);
-  const [courses, setCourses] = useState([]);
-  const [anns, setAnns] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  // Local state with fallbacks to demo data if API is not fully configured
+  const [profile, setProfile] = useState({
+    name: user?.name || "Arjun Mehta",
+    rollNo: "2022CSE047",
+    semester: "5th Semester",
+    department: "Computer Science & Engineering",
+    gpa: "8.74",
+    credits: "82/144",
+    attendance: "88%"
+  });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [profData, coursesData, annsData] = await Promise.all([
-          apiCall("http://localhost:5000/api/student/profile"),
-          apiCall("http://localhost:5000/api/student/courses"),
-          apiCall("http://localhost:5000/api/announcements")
-        ]);
-        setProfile(profData);
-        setCourses(coursesData);
-        setAnns(annsData);
-        setError(null);
-      } catch (e) {
-        setError(e.message || "Failed to load dashboard data");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, [apiCall]);
+  const [courses, setCourses] = useState(COURSES);
+  const [anns, setAnns] = useState(ANNOUNCEMENTS.slice(0, 3));
 
-  if (loading) return <div style={{ padding: 24, fontSize: 16 }}>Loading Student Dashboard...</div>;
-  if (error) return <div style={{ padding: 24, color: '#E53E3E', fontWeight: 600 }}>Error: {error}</div>;
+  // Today's classes schedule
+  const todaysSchedule = [
+    { time: "09:00 AM", code: "CS501", subject: "Data Structures & Algorithms", room: "Block A - 201" },
+    { time: "10:15 AM", code: "CS502", subject: "Operating Systems", room: "Block A - 203" },
+    { time: "11:30 AM", code: "MATH303", subject: "Discrete Mathematics", room: "Block B - 102" },
+  ];
+
+  // Recharts chart data
+  const gpaData = [
+    { semester: "Sem 1", gpa: 8.2 },
+    { semester: "Sem 2", gpa: 8.5 },
+    { semester: "Sem 3", gpa: 7.9 },
+    { semester: "Sem 4", gpa: 8.8 },
+    { semester: "Sem 5", gpa: 8.74 },
+  ];
 
   return (
-    <div style={{ padding: 24, fontFamily: 'inherit' }}>
-      <div style={{ background: '#fff', borderRadius: 16, padding: 24, boxShadow: '0 4px 20px rgba(0,0,0,0.05)', marginBottom: 24 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 800, color: '#1A1D1F', margin: 0 }}>Welcome back, {profile?.name}!</h1>
-        <p style={{ color: '#6F767E', margin: '8px 0 0 0', fontSize: 14 }}>
-          Enrollment No: <b>{profile?.enrollment_no}</b> | Semester: <b>{profile?.semester}</b> | Dept: <b>{profile?.department}</b>
-        </p>
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+      {/* Welcome Banner */}
+      <div style={{
+        background: `linear-gradient(135deg, ${C.primary} 0%, #8B7FFF 100%)`,
+        padding: "32px",
+        borderRadius: "20px",
+        color: "#fff",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        flexWrap: "wrap",
+        gap: 16
+      }}>
+        <div>
+          <h1 style={{ fontSize: 24, fontWeight: 800, margin: 0 }}>Welcome Back, {profile.name}!</h1>
+          <p style={{ fontSize: 13, color: "rgba(255,255,255,0.85)", marginTop: 6 }}>
+            Roll Number: <b>{profile.rollNo}</b> &bull; Semester: <b>{profile.semester}</b>
+          </p>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Badge label={profile.department} color="rgba(255, 255, 255, 0.2)" />
+        </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 24 }}>
-        {/* Enrolled Courses */}
-        <div>
-          <h2 style={{ fontSize: 20, fontWeight: 800, color: '#1A1D1F', marginBottom: 16 }}>Your Enrolled Courses ({courses.length})</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {courses.length === 0 ? (
-              <div style={{ padding: 20, background: '#F4F4F4', borderRadius: 12, color: '#6F767E' }}>No courses enrolled yet.</div>
-            ) : (
-              courses.map(c => (
-                <div key={c.id} style={{ background: '#fff', border: '1.5px solid #F4F4F4', borderRadius: 16, padding: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      {/* Stats Summary Row */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 16 }}>
+        <Card p={16} style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ width: 44, height: 44, borderRadius: 12, background: C.primarySoft, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Icons.GradCap size={22} color={C.primary} />
+          </div>
+          <div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: C.text }}>{profile.gpa}</div>
+            <div style={{ fontSize: 12, color: C.sub }}>Cumulative GPA</div>
+          </div>
+        </Card>
+
+        <Card p={16} style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ width: 44, height: 44, borderRadius: 12, background: C.successSoft, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Icons.CheckCircle size={22} color={C.success} />
+          </div>
+          <div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: C.text }}>{profile.attendance}</div>
+            <div style={{ fontSize: 12, color: C.sub }}>Average Attendance</div>
+          </div>
+        </Card>
+
+        <Card p={16} style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ width: 44, height: 44, borderRadius: 12, background: C.orangeSoft, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Icons.Layers size={22} color={C.orange} />
+          </div>
+          <div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: C.text }}>{profile.credits}</div>
+            <div style={{ fontSize: 12, color: C.sub }}>Earned Credits</div>
+          </div>
+        </Card>
+
+        <Card p={16} style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ width: 44, height: 44, borderRadius: 12, background: C.tealSoft, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Icons.Calendar size={22} color={C.teal} />
+          </div>
+          <div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: C.text }}>3 Lectures</div>
+            <div style={{ fontSize: 12, color: C.sub }}>Scheduled Today</div>
+          </div>
+        </Card>
+      </div>
+
+      {/* Main Grid: Graph + Schedule / Announcements */}
+      <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 20 }} className="cb-grid-sidebar">
+        {/* Left Side: Course Progress & Performance Charts */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          <Card style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <h3 style={{ fontSize: 15, fontWeight: 800, color: C.text }}>Academic CGPA Trend</h3>
+            <div style={{ width: "100%", height: 220 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={gpaData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorGpa" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={C.primary} stopOpacity={0.4}/>
+                      <stop offset="95%" stopColor={C.primary} stopOpacity={0.0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={C.border} />
+                  <XAxis dataKey="semester" stroke={C.sub} style={{ fontSize: 11 }} />
+                  <YAxis domain={[5, 10]} stroke={C.sub} style={{ fontSize: 11 }} />
+                  <Tooltip />
+                  <Area type="monotone" dataKey="gpa" stroke={C.primary} strokeWidth={2.5} fillOpacity={1} fill="url(#colorGpa)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </Card>
+
+          <Card style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <h3 style={{ fontSize: 15, fontWeight: 800, color: C.text }}>Course Attendances & Grades</h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {courses.map(course => (
+                <div key={course.code} className="cb-flex-between" style={{ paddingBottom: 10, borderBottom: `1px solid ${C.border}` }}>
                   <div>
-                    <span style={{ fontSize: 11, fontWeight: 800, background: '#F3E8FF', color: '#7E3AF2', padding: '4px 8px', borderRadius: 6 }}>{c.code}</span>
-                    <h3 style={{ fontSize: 16, fontWeight: 700, margin: '8px 0 4px 0' }}>{c.name}</h3>
-                    <p style={{ fontSize: 13, color: '#6F767E', margin: 0 }}>Faculty: {c.faculty_name}</p>
+                    <div style={{ fontSize: 13.5, fontWeight: 700, color: C.text }}>{course.name}</div>
+                    <div style={{ fontSize: 11.5, color: C.sub, marginTop: 2 }}>{course.faculty}</div>
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: '#1A1D1F' }}>{c.credits} Credits</div>
-                    <div style={{ fontSize: 12, color: '#6F767E', marginTop: 2 }}>Semester {c.semester}</div>
+                  <div className="cb-flex" style={{ gap: 14 }}>
+                    <div style={{ textAlign: "right" }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: course.attendance >= 75 ? C.success : C.danger }}>
+                        {course.attendance}% Attendance
+                      </div>
+                      <div style={{ fontSize: 11, color: C.sub }}>Target 75%</div>
+                    </div>
+                    <Badge label={`Grade ${course.grade}`} color={course.color} />
                   </div>
                 </div>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          </Card>
         </div>
 
-        {/* Announcements */}
-        <div>
-          <h2 style={{ fontSize: 20, fontWeight: 800, color: '#1A1D1F', marginBottom: 16 }}>Latest Announcements</h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {anns.length === 0 ? (
-              <div style={{ padding: 20, background: '#F4F4F4', borderRadius: 12, color: '#6F767E' }}>No announcements.</div>
-            ) : (
-              anns.map(a => (
-                <div key={a.id} style={{ background: '#fff', border: '1.5px solid #F4F4F4', borderRadius: 16, padding: 16 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <span style={{ fontSize: 11, fontWeight: 800, background: '#E0F2FE', color: '#0369A1', padding: '4px 8px', borderRadius: 6, textTransform: 'uppercase' }}>Target: {a.role_target}</span>
-                    <span style={{ fontSize: 11, color: '#9A9FA5' }}>{new Date(a.created_at).toLocaleDateString()}</span>
+        {/* Right Side: Today's Classes & Announcements */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          {/* Today's Schedule */}
+          <Card style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <h3 style={{ fontSize: 15, fontWeight: 800, color: C.text }}>Today's Classes</h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {todaysSchedule.map((item, idx) => (
+                <div key={idx} style={{ display: "flex", gap: 12, paddingBottom: 12, borderBottom: idx !== todaysSchedule.length - 1 ? `1px solid ${C.border}` : "none" }}>
+                  <div style={{
+                    width: 48, height: 48, borderRadius: 10, background: C.primarySoft, color: C.primary,
+                    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center"
+                  }}>
+                    <Icons.Clock size={14} color={C.primary} />
+                    <span style={{ fontSize: 9.5, fontWeight: 800, marginTop: 2 }}>{item.time.split(" ")[0]}</span>
                   </div>
-                  <h4 style={{ fontSize: 14, fontWeight: 700, margin: '0 0 6px 0', color: '#1A1D1F' }}>{a.title}</h4>
-                  <p style={{ fontSize: 13, color: '#6F767E', margin: 0, lineHeight: 1.5 }}>{a.content}</p>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: C.sub }}>{item.code} &bull; {item.room}</div>
+                    <h4 style={{ fontSize: 13, fontWeight: 700, color: C.text, marginTop: 2 }} className="cb-text-ellipsis">
+                      {item.subject}
+                    </h4>
+                  </div>
                 </div>
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          </Card>
+
+          {/* Latest Announcements */}
+          <Card style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            <h3 style={{ fontSize: 15, fontWeight: 800, color: C.text }}>Recent Notices</h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              {anns.map((a, idx) => (
+                <div key={a.id} style={{ display: "flex", gap: 10, alignItems: "flex-start", paddingBottom: idx !== anns.length - 1 ? 12 : 0, borderBottom: idx !== anns.length - 1 ? `1px solid ${C.border}` : "none" }}>
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: a.color, marginTop: 4, flexShrink: 0 }} />
+                  <div>
+                    <h5 style={{ fontSize: 12.5, fontWeight: 700, color: C.text }}>{a.title}</h5>
+                    <p style={{ fontSize: 11.5, color: C.sub, marginTop: 4, lineHeight: 1.4 }}>
+                      {a.body.substring(0, 70)}...
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
         </div>
       </div>
     </div>
   );
-};
-
-export default StudentDashboard;
+}

@@ -22,7 +22,7 @@ export class GlobalErrorBoundary extends React.Component {
           <h1 style={{ fontSize: 24, fontWeight: 'bold' }}>App Crashed</h1>
           <p style={{ marginTop: 10 }}>{this.state.error && this.state.error.toString()}</p>
           <pre style={{ marginTop: 20, background: '#fff', padding: 20, overflow: 'auto', border: '1px solid #FCA5A5' }}>
-            {this.state.errorInfo && this.state.errorInfo.componentStack}
+            {this.state.errorInfo && this.state.errorInfo.ComponentStack}
           </pre>
         </div>
       );

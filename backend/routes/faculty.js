@@ -105,7 +105,6 @@ router.get('/students', async (req, res) => {
 
     if (studErr) return res.status(500).json({ error: studErr.message });
 
-    // Map course information onto each student
     const result = students.map(s => {
       const studentCourses = enrollments
         .filter(e => e.student_id === s.id)
@@ -114,7 +113,7 @@ router.get('/students', async (req, res) => {
         id: s.id,
         name: s.users.name,
         email: s.users.email,
-        enrollment_no: s.enrollment_no,
+        enrollment_no: s.roll_number || s.rollNo || s.enrollment_no,
         department: s.department,
         semester: s.semester,
         course_ids: studentCourses

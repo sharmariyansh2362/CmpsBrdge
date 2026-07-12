@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { C } from "../../constants/colors";
 import { useApp } from "../../context/AppContext";
-import { Card, Btn, Badge } from "../../components/ui";
+import { Card, Btn, Badge } from "../../Components/ui";
 
 export default function AdminApplications() {
   const { apiCall } = useApp();
@@ -12,7 +12,7 @@ export default function AdminApplications() {
   const fetchApps = async () => {
     try {
       setLoading(true);
-      const data = await apiCall("http://localhost:5000/api/admin/applications");
+      const data = await apiCall("/api/admin/applications");
       setApps(data);
     } catch (err) {
       setError(err.message || "Failed to load applications");
@@ -28,12 +28,12 @@ export default function AdminApplications() {
   const handleApprove = async (id, type) => {
     try {
       if (type === "registration") {
-        await apiCall(`http://localhost:5000/api/admin/applications/${id}/approve`, {
+        await apiCall(`/api/admin/applications/${id}/approve`, {
           method: "PUT"
         });
         alert("User approved and account created!");
       } else {
-        await apiCall(`http://localhost:5000/api/admin/applications/${id}/status`, {
+        await apiCall(`/api/admin/applications/${id}/status`, {
           method: "PUT",
           body: JSON.stringify({ status: "approved" })
         });
@@ -47,7 +47,7 @@ export default function AdminApplications() {
 
   const handleReject = async (id) => {
     try {
-      await apiCall(`http://localhost:5000/api/admin/applications/${id}/status`, {
+      await apiCall(`/api/admin/applications/${id}/status`, {
         method: "PUT",
         body: JSON.stringify({ status: "rejected" })
       });
@@ -91,9 +91,9 @@ export default function AdminApplications() {
                       <p style={{ fontSize: 13, color: C.sub, margin: '0 0 2px 0' }}>
                         Role: <b>{a.role}</b>
                       </p>
-                      {a.enrollment_no && (
+                      {a.roll_number && (
                         <p style={{ fontSize: 13, color: C.sub, margin: 0 }}>
-                          Enrollment No: <b>{a.enrollment_no}</b>
+                          Roll Number: <b>{a.roll_number}</b>
                         </p>
                       )}
                     </>
@@ -103,7 +103,7 @@ export default function AdminApplications() {
                         {String(a.type || "").toUpperCase()}
                       </h3>
                       <p style={{ fontSize: 13, color: C.sub, margin: 0 }}>
-                        Submitted by: <b>{a.students?.users?.name}</b> ({a.students?.enrollment_no})
+                        Submitted by: <b>{a.students?.users?.name}</b> ({a.students?.roll_number || a.students?.rollNo || a.students?.enrollment_no})
                       </p>
                     </>
                   )}

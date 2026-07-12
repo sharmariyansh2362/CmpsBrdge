@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { C } from "../../constants/colors";
 import { useApp } from "../../context/AppContext";
-import { Card } from "../../components/ui";
+import { Card } from "../../Components/ui";
 
 export default function AdminLogs() {
   const { apiCall } = useApp();
@@ -12,7 +12,7 @@ export default function AdminLogs() {
     const fetchLogs = async () => {
       try {
         setLoading(true);
-        const data = await apiCall("http://localhost:5000/api/admin/logs");
+        const data = await apiCall("/api/admin/logs");
         setLogs(data);
       } catch (err) {
         console.error("Failed to load logs", err);
