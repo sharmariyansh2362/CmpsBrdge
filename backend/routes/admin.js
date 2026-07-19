@@ -81,7 +81,7 @@ router.post('/users', async (req, res) => {
 
 router.put('/users/:id', async (req, res) => {
   try {
-    const { name, email, role, department } = req.body;
+    const { name, email, role, department, semester, section } = req.body;
     const { data: user, error } = await supabase
       .from('users')
       .update({ name, email, role, department })
@@ -90,6 +90,18 @@ router.put('/users/:id', async (req, res) => {
       .single();
 
     if (error) return res.status(400).json({ error: error.message });
+
+    // If student, also update semester/section in students table
+    if (role === 'student' && (semester || section)) {
+      const updateFields = {};
+      if (semester) updateFields.semester = semester;
+      if (section) updateFields.section = section;
+
+      await supabase
+        .from('students')
+        .update(updateFields)
+        .eq('user_id', req.params.id);
+    }
 
     await logAction(req.user.id, `Updated user ${email}`, user.id);
     res.json(user);
@@ -304,6 +316,37 @@ router.post('/users/:id/enroll', async (req, res) => {
 
     await logAction(req.user.id, `Enrolled student (user ${req.params.id}) in course ${course_id}`);
     res.json({ success: true, message: 'Course assigned successfully' });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Create a new course
+router.post('/courses', async (req, res) => {
+  try {
+    const { name, code, department, faculty_id, semester, credits } = req.body;
+    if (!name || !code) return res.status(400).json({ error: 'Name and code are required' });
+
+    let facultyRowId = null;
+    if (faculty_id) {
+      const { data: facultyRow } = await supabase
+        .from('faculty')
+        .select('id')
+        .eq('user_id', faculty_id)
+        .single();
+      facultyRowId = facultyRow?.id || null;
+    }
+
+    const { data: course, error } = await supabase
+      .from('courses')
+      .insert({ name, code, department, faculty_id: facultyRowId, semester, credits })
+      .select()
+      .single();
+
+    if (error) return res.status(400).json({ error: error.message });
+
+    await logAction(req.user.id, `Created course ${code} - ${name}`);
+    res.status(201).json(course);
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }

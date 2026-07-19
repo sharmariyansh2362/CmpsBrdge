@@ -243,6 +243,7 @@ export const NAV_ITEMS = {
     { id: "settings",      label: "Settings",              icon: "Settings",   badge: null },
   ],
   admin: [
+    { id: "timetable", label: "Timetable", icon: "Calendar", badge: null },
     { id: "dashboard",     label: "Dashboard",             icon: "Dashboard",  badge: null },
     { id: "users",         label: "Manage Users",          icon: "Users",      badge: null },
     { id: "applications",  label: "Applications",          icon: "FileText",   badge: 3    },

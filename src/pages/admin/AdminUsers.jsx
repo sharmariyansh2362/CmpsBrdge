@@ -9,7 +9,7 @@ export default function AdminUsers() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Form states
+  // User form states
   const [showAddForm, setShowAddForm] = useState(false);
   const [editId, setEditId] = useState(null);
 
@@ -19,11 +19,22 @@ export default function AdminUsers() {
   const [role, setRole] = useState("student");
   const [dept, setDept] = useState("CSE");
   const [extraId, setExtraId] = useState("");
+  const [semester, setSemester] = useState("1");
+  const [section, setSection] = useState("A");
 
-  // Course enrollment states
+  // Course states
   const [courses, setCourses] = useState([]);
   const [enrollUserId, setEnrollUserId] = useState(null);
   const [selectedCourse, setSelectedCourse] = useState("");
+
+  // Add course form states
+  const [showCourseForm, setShowCourseForm] = useState(false);
+  const [courseName, setCourseName] = useState("");
+  const [courseCode, setCourseCode] = useState("");
+  const [courseDept, setCourseDept] = useState("CSE");
+  const [courseFaculty, setCourseFaculty] = useState("");
+  const [courseSemester, setCourseSemester] = useState("1");
+  const [courseCredits, setCourseCredits] = useState("4");
 
   const fetchUsers = async () => {
     try {
@@ -56,7 +67,7 @@ export default function AdminUsers() {
     try {
       await apiCall("/api/admin/users", {
         method: "POST",
-        body: JSON.stringify({ name, email, password, role, department: dept, extraId })
+        body: JSON.stringify({ name, email, password, role, department: dept, extraId, semester, section })
       });
       setShowAddForm(false);
       resetForm();
@@ -71,7 +82,7 @@ export default function AdminUsers() {
     try {
       await apiCall(`/api/admin/users/${editId}`, {
         method: "PUT",
-        body: JSON.stringify({ name, email, role, department: dept })
+        body: JSON.stringify({ name, email, role, department: dept, semester, section })
       });
       setEditId(null);
       resetForm();
@@ -108,6 +119,25 @@ export default function AdminUsers() {
     }
   };
 
+  const handleAddCourse = async (e) => {
+    e.preventDefault();
+    try {
+      await apiCall("/api/admin/courses", {
+        method: "POST",
+        body: JSON.stringify({
+          name: courseName, code: courseCode, department: courseDept,
+          faculty_id: courseFaculty, semester: courseSemester, credits: courseCredits
+        })
+      });
+      setShowCourseForm(false);
+      setCourseName(""); setCourseCode(""); setCourseFaculty("");
+      fetchCourses();
+      alert("Course added!");
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
   const resetForm = () => {
     setName("");
     setEmail("");
@@ -115,6 +145,8 @@ export default function AdminUsers() {
     setRole("student");
     setDept("CSE");
     setExtraId("");
+    setSemester("1");
+    setSection("A");
   };
 
   const startEdit = (u) => {
@@ -123,6 +155,8 @@ export default function AdminUsers() {
     setEmail(u.email);
     setRole(u.role);
     setDept(u.department || "");
+    setSemester(u.semester || "1");
+    setSection(u.section || "A");
   };
 
   if (loading) return <div style={{ padding: 40 }}>Loading users directory...</div>;
@@ -135,12 +169,55 @@ export default function AdminUsers() {
           <h2 style={{ fontSize: 22, fontWeight: 800, color: C.text, margin: 0 }}>System Users Directory</h2>
           <p style={{ color: C.sub, fontSize: 13, margin: '4px 0 0 0' }}>Manage student, faculty, and administrator accounts.</p>
         </div>
-        {!showAddForm && !editId && (
-          <Btn onClick={() => setShowAddForm(true)} color="#EC4899">Add New User</Btn>
-        )}
+        <div style={{ display: 'flex', gap: 10 }}>
+          {!showCourseForm && (
+            <Btn onClick={() => setShowCourseForm(true)} color="#10B981">Add Course</Btn>
+          )}
+          {!showAddForm && !editId && (
+            <Btn onClick={() => setShowAddForm(true)} color="#EC4899">Add New User</Btn>
+          )}
+        </div>
       </div>
 
-      {/* Forms */}
+      {/* Add Course Form */}
+      {showCourseForm && (
+        <Card p={24} style={{ marginBottom: 24 }}>
+          <h3>Add New Course</h3>
+          <form onSubmit={handleAddCourse} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              <Input label="Course Name" value={courseName} onChange={setCourseName} required />
+              <Input label="Course Code" value={courseCode} onChange={setCourseCode} required />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              <Input label="Department" value={courseDept} onChange={setCourseDept} />
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: C.sub, display: 'block', marginBottom: 6 }}>Faculty</label>
+                <select value={courseFaculty} onChange={(e) => setCourseFaculty(e.target.value)} style={{ width: '100%', padding: 10, borderRadius: 10, border: '1.5px solid #EAEAEA', outline: 'none' }}>
+                  <option value="">Select faculty</option>
+                  {users.filter(u => u.role === 'faculty').map(f => (
+                    <option key={f.id} value={f.id}>{f.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 700, color: C.sub, display: 'block', marginBottom: 6 }}>Semester</label>
+                <select value={courseSemester} onChange={(e) => setCourseSemester(e.target.value)} style={{ width: '100%', padding: 10, borderRadius: 10, border: '1.5px solid #EAEAEA', outline: 'none' }}>
+                  {[1,2,3,4,5,6,7,8].map(s => <option key={s} value={s}>Sem {s}</option>)}
+                </select>
+              </div>
+              <Input label="Credits" type="number" value={courseCredits} onChange={setCourseCredits} />
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <Btn type="submit" color="#10B981">Create Course</Btn>
+              <Btn color="#6F767E" onClick={() => setShowCourseForm(false)}>Cancel</Btn>
+            </div>
+          </form>
+        </Card>
+      )}
+
+      {/* Add/Edit User Form */}
       {(showAddForm || editId) && (
         <Card p={24} style={{ marginBottom: 24 }}>
           <h3>{editId ? "Edit User Account" : "Create New User Account"}</h3>
@@ -168,6 +245,23 @@ export default function AdminUsers() {
               </div>
               <Input label="Department" value={dept} onChange={setDept} />
             </div>
+
+            {role === 'student' && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: C.sub, display: 'block', marginBottom: 6 }}>Semester</label>
+                  <select value={semester} onChange={(e) => setSemester(e.target.value)} style={{ width: '100%', padding: 10, borderRadius: 10, border: '1.5px solid #EAEAEA', outline: 'none' }}>
+                    {[1,2,3,4,5,6,7,8].map(s => <option key={s} value={s}>Sem {s}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 700, color: C.sub, display: 'block', marginBottom: 6 }}>Section</label>
+                  <select value={section} onChange={(e) => setSection(e.target.value)} style={{ width: '100%', padding: 10, borderRadius: 10, border: '1.5px solid #EAEAEA', outline: 'none' }}>
+                    {["A","B","C","D"].map(s => <option key={s} value={s}>Section {s}</option>)}
+                  </select>
+                </div>
+              </div>
+            )}
 
             <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
               <Btn type="submit" color="#EC4899">{editId ? "Save Changes" : "Create Account"}</Btn>

@@ -144,6 +144,7 @@ export default function App() {
           <Route element={<ProtectedRoute allowedRole="admin" />}>
             <Route element={<AppLayout />}>
               <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/admin/timetable" element={<TimetablePage />} />
               <Route path="/admin/users" element={<AdminUsers />} />
               <Route path="/admin/applications" element={<AdminApplications />} />
               <Route path="/admin/announcements" element={<AnnouncementsPage />} />
