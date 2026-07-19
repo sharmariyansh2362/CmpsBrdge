@@ -59,6 +59,7 @@ app.use('/api/faculty', verifyToken, require('./routes/faculty'));
 app.use('/api/admin', verifyToken, require('./routes/admin'));
 app.use('/api/announcements', verifyToken, require('./routes/announcements'));
 app.use('/api/channels', verifyToken, require('./routes/channels'));
+app.use("/api/attendance", require("./routes/attendance"));
 app.use('/api/lost-found', verifyToken, require('./routes/lostfound'));
 app.use('/api/placements', require('./routes/placements'));
 app.use('/api/academic', require('./routes/academic'));

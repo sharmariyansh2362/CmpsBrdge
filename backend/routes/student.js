@@ -132,4 +132,56 @@ router.post('/applications', verifyToken, async (req, res) => {
   }
 });
 
+// Student attendance routes
+router.post('/attendance/mark', async (req, res) => {
+  try {
+    const { class_id, date } = req.body;
+    if (!class_id) return res.status(400).json({ error: 'class_id required' });
+
+    const { data: student, error: stuErr } = await supabase
+      .from('students')
+      .select('id')
+      .eq('user_id', req.user.id)
+      .single();
+
+    if (stuErr || !student) return res.status(404).json({ error: 'Student profile not found' });
+
+    const attended_at = date ? new Date(date).toISOString() : new Date().toISOString();
+
+    const { data: record, error: insErr } = await supabase
+      .from('attendance_records')
+      .insert({ student_id: student.id, class_id, attended_at })
+      .select()
+      .single();
+
+    if (insErr) return res.status(400).json({ error: insErr.message });
+    res.status(201).json(record);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.get('/attendance/view', async (req, res) => {
+  try {
+    const { data: student, error: stuErr } = await supabase
+      .from('students')
+      .select('id')
+      .eq('user_id', req.user.id)
+      .single();
+
+    if (stuErr || !student) return res.status(404).json({ error: 'Student profile not found' });
+
+    const { data: records, error } = await supabase
+      .from('attendance_records')
+      .select('*, courses!inner(name)')
+      .eq('student_id', student.id)
+      .order('attended_at', { ascending: false });
+
+    if (error) return res.status(500).json({ error: error.message });
+    res.json(records);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 module.exports = router;
