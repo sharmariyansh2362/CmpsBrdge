@@ -12,36 +12,68 @@ router.get('/dashboard-stats', async (req, res) => {
 
     if (facErr || !faculty) return res.status(404).json({ error: 'Faculty profile not found' });
 
-    // Count assigned courses
-    const { count: courseCount, error: courseErr } = await supabase
-      .from('courses')
-      .select('*', { count: 'exact', head: true })
-      .eq('faculty_id', faculty.id);
-
-    // Get total enrolled students in all faculty courses
     const { data: courses } = await supabase
       .from('courses')
       .select('id')
       .eq('faculty_id', faculty.id);
 
+    const courseCount = courses?.length || 0;
     let studentCount = 0;
+    let attendancePercent = 0;
+    let atRiskCount = 0;
+    const gradeCounts = { "A+": 0, "A": 0, "B+": 0, "B": 0, "C": 0, "F": 0 };
+
     if (courses && courses.length > 0) {
       const courseIds = courses.map(c => c.id);
+
+      // Unique students enrolled
       const { data: enrollments } = await supabase
         .from('student_courses')
         .select('student_id')
         .in('course_id', courseIds);
 
-      if (enrollments) {
-        // Unique student count
-        const uniqueStudents = new Set(enrollments.map(e => e.student_id));
-        studentCount = uniqueStudents.size;
+      const uniqueStudentIds = enrollments ? [...new Set(enrollments.map(e => e.student_id))] : [];
+      studentCount = uniqueStudentIds.length;
+
+      // Attendance across these courses
+      const { data: attRecords } = await supabase
+        .from('attendance')
+        .select('student_id, status')
+        .in('course_id', courseIds);
+
+      if (attRecords && attRecords.length > 0) {
+        const present = attRecords.filter(a => a.status === 'present').length;
+        attendancePercent = Math.round((present / attRecords.length) * 100);
+
+        // Per-student attendance % to find at-risk (below 75%)
+        const perStudent = {};
+        attRecords.forEach(a => {
+          if (!perStudent[a.student_id]) perStudent[a.student_id] = { total: 0, present: 0 };
+          perStudent[a.student_id].total++;
+          if (a.status === 'present') perStudent[a.student_id].present++;
+        });
+        atRiskCount = Object.values(perStudent).filter(s => (s.present / s.total) * 100 < 75).length;
+      }
+
+      // Grade distribution across these courses
+      const { data: grades } = await supabase
+        .from('academic_performance')
+        .select('grade')
+        .in('course_id', courseIds);
+
+      if (grades) {
+        grades.forEach(g => {
+          if (gradeCounts[g.grade] !== undefined) gradeCounts[g.grade]++;
+        });
       }
     }
 
     res.json({
-      coursesCount: courseCount || 0,
-      studentsCount: studentCount
+      coursesCount: courseCount,
+      studentsCount: studentCount,
+      attendancePercent,
+      atRiskCount,
+      gradeDistribution: Object.entries(gradeCounts).map(([grade, students]) => ({ grade, students }))
     });
   } catch (err) {
     console.error(err);

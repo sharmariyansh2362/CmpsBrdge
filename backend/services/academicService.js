@@ -17,7 +17,7 @@ class AcademicService {
   async getPerformanceByCourse(courseId) {
     const { data, error } = await supabase
       .from('academic_performance')
-      .select('*, students(roll_number, users(name, email))')
+      .select('*, students(enrollment_no, users(name, email))')
       .eq('course_id', courseId)
       .order('created_at', { ascending: false });
 

@@ -183,5 +183,67 @@ router.get('/attendance/view', async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
+router.get('/dashboard-stats', async (req, res) => {
+  try {
+    const { data: student, error: stuErr } = await supabase
+      .from('students')
+      .select('*, users(name)')
+      .eq('user_id', req.user.id)
+      .single();
+
+    if (stuErr || !student) return res.status(404).json({ error: 'Student profile not found' });
+
+    // CGPA + credits from academic_performance
+    const { data: perf } = await supabase
+      .from('academic_performance')
+      .select('grade_point, courses(credits)')
+      .eq('student_id', student.id);
+
+    let cgpa = 0, totalCredits = 0;
+    if (perf && perf.length > 0) {
+      const weightedSum = perf.reduce((s, r) => s + (r.grade_point || 0) * (r.courses?.credits || 0), 0);
+      totalCredits = perf.reduce((s, r) => s + (r.courses?.credits || 0), 0);
+      cgpa = totalCredits > 0 ? parseFloat((weightedSum / totalCredits).toFixed(2)) : 0;
+    }
+
+    // Attendance %
+    const { data: attRecords } = await supabase
+      .from('attendance')
+      .select('status')
+      .eq('student_id', student.id);
+
+    let attendancePercent = 0;
+    if (attRecords && attRecords.length > 0) {
+      const present = attRecords.filter(a => a.status === 'present').length;
+      attendancePercent = Math.round((present / attRecords.length) * 100);
+    }
+
+    // Today's classes from timetable
+    const dayNames = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+    const today = dayNames[new Date().getDay()];
+    const { data: todayClasses } = await supabase
+      .from('timetable')
+      .select('*')
+      .eq('semester', student.semester)
+      .eq('section', student.section)
+      .eq('day', today)
+      .order('time_slot');
+
+    res.json({
+      name: student.users?.name,
+      roll_number: student.roll_number || student.enrollment_no,
+      semester: student.semester,
+      department: student.department,
+      section: student.section,
+      cgpa,
+      totalCredits,
+      attendancePercent,
+      todayClasses: todayClasses || []
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
 
 module.exports = router;

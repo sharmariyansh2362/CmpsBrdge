@@ -22,8 +22,7 @@ export default function FacultyDashboard() {
   });
 
   const [courses, setCourses] = useState([]);
-  const [stats, setStats] = useState({ coursesCount: 0, studentsCount: 0 });
-
+  const [stats, setStats] = useState({ coursesCount: 0, studentsCount: 0, attendancePercent: 0, atRiskCount: 0, gradeDistribution: [] });
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -57,15 +56,6 @@ export default function FacultyDashboard() {
     fetchData();
   }, [apiCall]);
 
-  // Student marks analytics chart data
-  const gradeDistribution = [
-    { grade: "A+", students: stats.studentsCount > 0 ? Math.ceil(stats.studentsCount * 0.3) : 0 },
-    { grade: "A", students: stats.studentsCount > 0 ? Math.ceil(stats.studentsCount * 0.4) : 0 },
-    { grade: "B+", students: stats.studentsCount > 0 ? Math.floor(stats.studentsCount * 0.2) : 0 },
-    { grade: "B", students: stats.studentsCount > 0 ? Math.floor(stats.studentsCount * 0.1) : 0 },
-    { grade: "C", students: 0 },
-    { grade: "F", students: 0 },
-  ];
 
   if (loading) return <div style={{ padding: 40, color: C.sub }}>Loading Dashboard Telemetry...</div>;
 
@@ -121,7 +111,7 @@ export default function FacultyDashboard() {
             <Icons.CheckCircle size={22} color={C.success} />
           </div>
           <div>
-            <div style={{ fontSize: 18, fontWeight: 800, color: C.text }}>85.2%</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: C.text }}>{stats.attendancePercent}%</div>
             <div style={{ fontSize: 12, color: C.sub }}>Average Attendance</div>
           </div>
         </Card>
@@ -131,7 +121,7 @@ export default function FacultyDashboard() {
             <Icons.Warning size={22} color={C.danger} />
           </div>
           <div>
-            <div style={{ fontSize: 18, fontWeight: 800, color: C.text }}>0 Students</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: C.text }}>{stats.atRiskCount} Students</div>
             <div style={{ fontSize: 12, color: C.sub }}>At Academic Risk</div>
           </div>
         </Card>
@@ -150,8 +140,7 @@ export default function FacultyDashboard() {
                 </div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={gradeDistribution} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={C.border} />
+                  <BarChart data={stats.gradeDistribution} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={C.border} />
                     <XAxis dataKey="grade" stroke={C.sub} style={{ fontSize: 11 }} />
                     <YAxis stroke={C.sub} style={{ fontSize: 11 }} />
                     <Tooltip />
@@ -197,8 +186,9 @@ export default function FacultyDashboard() {
             <h3 style={{ fontSize: 15, fontWeight: 800, color: C.text }}>At-Risk Students Alerts</h3>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div style={{ fontSize: 13, color: C.sub, textAlign: "center", padding: "12px 0" }}>
-                All students are currently performing above the warning threshold.
-              </div>
+                {stats.atRiskCount === 0
+                  ? "All students are currently performing above the warning threshold."
+                  : `${stats.atRiskCount} student(s) have attendance below 75%.`}              </div>
             </div>
           </Card>
 

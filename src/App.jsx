@@ -131,6 +131,7 @@ export default function App() {
               <Route path="/faculty/courses" element={<FacultyCourses />} />
               <Route path="/faculty/students" element={<FacultyStudents />} />
               <Route path="/faculty/attendance" element={<AttendancePage />} />
+              <Route path="/faculty/academic" element={<AcademicPerformancePage />} />
               <Route path="/faculty/timetable" element={<TimetablePage />} />
               <Route path="/faculty/channels" element={<ChannelsPage />} />
               <Route path="/faculty/placements" element={<PlacementsPage />} />

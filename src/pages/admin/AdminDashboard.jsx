@@ -19,18 +19,27 @@ export default function AdminDashboard() {
     pendingApplications: 0
   });
 
+  const [deptDistribution, setDeptDistribution] = useState([]);
+  const [systemLogs, setSystemLogs] = useState([]);
+
   const fetchStats = async () => {
     try {
       setLoading(true);
-      const data = await apiCall("/api/admin/dashboard-stats");
-      if (data) {
+      const [statsData, deptData, logsData] = await Promise.all([
+        apiCall("/api/admin/dashboard-stats").catch(() => null),
+        apiCall("/api/admin/dept-distribution").catch(() => []),
+        apiCall("/api/admin/logs").catch(() => [])
+      ]);
+      if (statsData) {
         setStats({
-          students: data.students || 0,
-          faculty: data.faculty || 0,
-          courses: data.courses || 0,
-          pendingApplications: data.pendingApplications || 0
+          students: statsData.students || 0,
+          faculty: statsData.faculty || 0,
+          courses: statsData.courses || 0,
+          pendingApplications: statsData.pendingApplications || 0
         });
       }
+      setDeptDistribution(deptData || []);
+      setSystemLogs((logsData || []).slice(0, 3));
     } catch (err) {
       console.error("Failed to load admin stats:", err);
     } finally {
@@ -42,19 +51,6 @@ export default function AdminDashboard() {
     fetchStats();
   }, [apiCall]);
 
-  // Dynamic distribution stats based on actual database counts
-  const deptDistribution = [
-    { name: "CSE", students: stats.students > 0 ? Math.ceil(stats.students * 0.6) : 0, faculty: stats.faculty > 0 ? Math.ceil(stats.faculty * 0.5) : 0 },
-    { name: "MBA", students: stats.students > 0 ? Math.floor(stats.students * 0.3) : 0, faculty: stats.faculty > 0 ? Math.floor(stats.faculty * 0.3) : 0 },
-    { name: "LAW", students: stats.students > 0 ? Math.floor(stats.students * 0.1) : 0, faculty: stats.faculty > 0 ? Math.floor(stats.faculty * 0.2) : 0 },
-  ];
-
-  // Recent system logs
-  const systemLogs = [
-    { id: 1, action: "Student registered", detail: "2022CSE048 – Riya Desai enrolled successfully", time: "10:32 AM", color: C.success },
-    { id: 2, action: "Failed login attempt", detail: "3 failed attempts – IP 192.168.1.45", time: "10:15 AM", color: C.danger },
-    { id: 3, action: "Faculty profile updated", detail: "Dr. Priya Sharma updated office hours", time: "9:50 AM", color: C.primary },
-  ];
 
   if (loading) return <div style={{ padding: 40, color: C.sub }}>Loading Admin Controls...</div>;
 
@@ -205,25 +201,29 @@ export default function AdminDashboard() {
           <Card style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <h3 style={{ fontSize: 15, fontWeight: 800, color: C.text }}>Recent Audit Telemetry</h3>
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {systemLogs.map(log => (
-                <div key={log.id} style={{ display: "flex", gap: 12, paddingBottom: 12, borderBottom: `1px solid ${C.border}` }}>
-                  <div style={{
-                    width: 36, height: 36, borderRadius: 10, background: log.color + "14", color: log.color,
-                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0
-                  }}>
-                    <Icons.Activity size={14} color={log.color} />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="cb-flex-between">
-                      <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{log.action}</span>
-                      <span style={{ fontSize: 10.5, color: C.sub }}>{log.time}</span>
+              {systemLogs.length === 0 ? (
+                <div style={{ textAlign: "center", color: C.sub, padding: 12 }}>No recent activity logged.</div>
+              ) : (
+                systemLogs.map(log => (
+                  <div key={log.id} style={{ display: "flex", gap: 12, paddingBottom: 12, borderBottom: `1px solid ${C.border}` }}>
+                    <div style={{
+                      width: 36, height: 36, borderRadius: 10, background: C.primarySoft, color: C.primary,
+                      display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0
+                    }}>
+                      <Icons.Activity size={14} color={C.primary} />
                     </div>
-                    <p style={{ fontSize: 11.5, color: C.sub, marginTop: 2, lineHeight: 1.4 }} className="cb-text-ellipsis">
-                      {log.detail}
-                    </p>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div className="cb-flex-between">
+                        <span style={{ fontSize: 12, fontWeight: 700, color: C.text }}>{log.action}</span>
+                        <span style={{ fontSize: 10.5, color: C.sub }}>{new Date(log.created_at).toLocaleTimeString()}</span>
+                      </div>
+                      <p style={{ fontSize: 11.5, color: C.sub, marginTop: 2, lineHeight: 1.4 }} className="cb-text-ellipsis">
+                        By {log.users?.name || 'System'}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
             <Btn sm variant="outline" onClick={() => navigate("/admin/logs")}>View All System Logs</Btn>
           </Card>

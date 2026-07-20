@@ -352,4 +352,29 @@ router.post('/courses', async (req, res) => {
   }
 });
 
+router.get('/dept-distribution', async (req, res) => {
+  try {
+    const { data: students } = await supabase.from('students').select('department');
+    const { data: facultyRows } = await supabase.from('faculty').select('department');
+
+    const deptMap = {};
+
+    (students || []).forEach(s => {
+      const dept = s.department || 'Unassigned';
+      if (!deptMap[dept]) deptMap[dept] = { name: dept, students: 0, faculty: 0 };
+      deptMap[dept].students++;
+    });
+
+    (facultyRows || []).forEach(f => {
+      const dept = f.department || 'Unassigned';
+      if (!deptMap[dept]) deptMap[dept] = { name: dept, students: 0, faculty: 0 };
+      deptMap[dept].faculty++;
+    });
+
+    res.json(Object.values(deptMap));
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 module.exports = router;

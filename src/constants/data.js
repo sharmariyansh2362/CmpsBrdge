@@ -235,6 +235,7 @@ export const NAV_ITEMS = {
     { id: "courses",       label: "My Courses",            icon: "BookMark",   badge: 8    },
     { id: "students",      label: "All Students",          icon: "Users",      badge: null },
     { id: "attendance",    label: "Attendance",             icon: "CheckCircle",badge: null },
+    { id: "academic", label: "Academic Performance", icon: "BarChart", badge: null },
     { id: "timetable",     label: "Timetable",             icon: "Calendar",   badge: null },
     { id: "channels",      label: "Class Channels",        icon: "Hash",       badge: null },
     { id: "placements",    label: "Placement Cell",        icon: "Briefcase",  badge: null },
