@@ -51,26 +51,25 @@ class PlacementService {
     return data;
   }
 
-  async applyToDrive(driveId, studentId) {
-    // Check if already applied
-    const { data: existing } = await supabase
-      .from('placement_applications')
-      .select('id')
-      .eq('drive_id', driveId)
-      .eq('student_id', studentId)
-      .single();
+ async applyToDrive(driveId, studentId, resumeUrl) {
+  const { data: existing } = await supabase
+    .from('placement_applications')
+    .select('id')
+    .eq('drive_id', driveId)
+    .eq('student_id', studentId)
+    .single();
 
-    if (existing) throw new AppError('Already applied to this drive', 409);
+  if (existing) throw new AppError('Already applied to this drive', 409);
 
-    const { data, error } = await supabase
-      .from('placement_applications')
-      .insert({ drive_id: driveId, student_id: studentId, status: 'applied' })
-      .select()
-      .single();
+  const { data, error } = await supabase
+    .from('placement_applications')
+    .insert({ drive_id: driveId, student_id: studentId, status: 'applied', resume_url: resumeUrl })
+    .select()
+    .single();
 
-    if (error) throw new AppError(error.message, 400);
-    return data;
-  }
+  if (error) throw new AppError(error.message, 400);
+  return data;
+}   
 
   async getStudentApplications(studentId) {
     const { data, error } = await supabase
@@ -82,11 +81,32 @@ class PlacementService {
     if (error) throw new AppError(error.message, 400);
     return data || [];
   }
+  async getDriveApplicants(driveId) {
+    const { data, error } = await supabase
+      .from('placement_applications')
+      .select('*, students(enrollment_no, users(name, email))')
+      .eq('drive_id', driveId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw new AppError(error.message, 400);
+    return data || [];
+  }
+  async updateApplicationStatus(applicationId, status) {
+  const { data, error } = await supabase
+    .from('placement_applications')
+    .update({ status })
+    .eq('id', applicationId)
+    .select()
+    .single();
+
+  if (error) throw new AppError(error.message, 400);
+  return data;
+}
 
   async getStats() {
     const { data: drives } = await supabase
       .from('placement_drives')
-      .select('id, status, package_lpa');
+      .select('id, status, package_lpa'); 
 
     const { data: applications } = await supabase
       .from('placement_applications')

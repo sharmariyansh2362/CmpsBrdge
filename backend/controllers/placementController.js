@@ -31,7 +31,7 @@ const updateDrive = async (req, res, next) => {
 
 const applyToDrive = async (req, res, next) => {
   try {
-    const application = await placementService.applyToDrive(req.params.id, req.body.student_id);
+    const application = await placementService.applyToDrive(req.params.id, req.body.student_id, req.body.resume_url);
     res.status(201).json(application);
   } catch (err) { next(err); }
 };
@@ -50,4 +50,18 @@ const getStats = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-module.exports = { getDrives, getDriveById, createDrive, updateDrive, applyToDrive, getStudentApplications, getStats };
+const getDriveApplicants = async (req, res, next) => {
+  try {
+    const applicants = await placementService.getDriveApplicants(req.params.id);
+    res.json(applicants);
+  } catch (err) { next(err); }
+};
+
+const updateApplicationStatus = async (req, res, next) => {
+  try {
+    const result = await placementService.updateApplicationStatus(req.params.id, req.body.status);
+    res.json(result);
+  } catch (err) { next(err); }
+};
+
+module.exports = { getDrives, getDriveById, createDrive, updateDrive, applyToDrive, getStudentApplications, getStats, getDriveApplicants, updateApplicationStatus };

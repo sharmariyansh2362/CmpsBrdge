@@ -1,21 +1,25 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useApp } from "../../context/AppContext";
 import { C, ROLE_COLORS } from "../../constants/colors";
-import { PLACEMENT_DRIVES } from "../../constants/data";
 import { Card, Btn, Badge, Input } from "../../Components/ui";
 import { Icons } from "../../Components/Icons";
 
 export default function PlacementsPage() {
-  const { user } = useApp();
-  const [activeTab, setActiveTab] = useState("drives"); // drives, applications, stats
-  const [drives, setDrives] = useState(PLACEMENT_DRIVES);
+  const { user, apiCall } = useApp();
+  const [activeTab, setActiveTab] = useState("drives");
+  const [loading, setLoading] = useState(true);
+  const [drives, setDrives] = useState([]);
+  const [applications, setApplications] = useState([]);
+  const [stats, setStats] = useState({ totalDrives: 0, activeDrives: 0, totalApplications: 0, placed: 0, avgPackage: 0 });
+  const [studentId, setStudentId] = useState(null);
+
   const [selectedDrive, setSelectedDrive] = useState(null);
-  const [appliedDrives, setAppliedDrives] = useState(["PD003"]);
   const [resumeUrl, setResumeUrl] = useState("");
   const [showApplyModal, setShowApplyModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showApplicantsModal, setShowApplicantsModal] = useState(false);
+  const [applicants, setApplicants] = useState([]);
 
-  // Form states for creating new drive
   const [newCompany, setNewCompany] = useState("");
   const [newRole, setNewRole] = useState("");
   const [newPackage, setNewPackage] = useState("");
@@ -24,44 +28,99 @@ export default function PlacementsPage() {
   const [newDeadline, setNewDeadline] = useState("");
   const [newDescription, setNewDescription] = useState("");
 
+  const loadDrives = () => {
+    apiCall("/api/placements/drives").then(data => setDrives(data || [])).catch(err => console.error(err));
+  };
+  const loadStats = () => {
+    apiCall("/api/placements/stats").then(data => setStats(data)).catch(err => console.error(err));
+  };
+  const loadApplications = (sid) => {
+    if (!sid) return;
+    apiCall(`/api/placements/applications/${sid}`).then(data => setApplications(data || [])).catch(err => console.error(err));
+  };
+
+  useEffect(() => {
+    setLoading(true);
+    const tasks = [loadDrives(), loadStats()];
+    if (user.role === "student") {
+      apiCall("/api/student/profile").then(profile => {
+        setStudentId(profile.id);
+        loadApplications(profile.id);
+      }).catch(err => console.error(err)).finally(() => setLoading(false));
+    } else {
+      setLoading(false);
+    }
+  }, [user]);
+
+  const appliedDriveIds = applications.map(a => a.drive_id);
+
   const handleApply = (drive) => {
     setSelectedDrive(drive);
     setShowApplyModal(true);
   };
 
-  const submitApplication = () => {
-    if (!resumeUrl.trim()) return;
-    setAppliedDrives([...appliedDrives, selectedDrive.id]);
-    setShowApplyModal(false);
-    setResumeUrl("");
-    alert(`Successfully applied to ${selectedDrive.company} for the role of ${selectedDrive.role}!`);
+  const submitApplication = async () => {
+    if (!resumeUrl.trim() || !studentId) return;
+    try {
+      await apiCall(`/api/placements/drives/${selectedDrive.id}/apply`, {
+        method: "POST",
+        body: JSON.stringify({ student_id: studentId, resume_url: resumeUrl })
+      });
+      alert(`Successfully applied to ${selectedDrive.company} for the role of ${selectedDrive.role}!`);
+      setShowApplyModal(false);
+      setResumeUrl("");
+      loadApplications(studentId);
+    } catch (err) {
+      alert(err.message);
+    }
   };
 
-  const handleCreateDrive = () => {
+  const handleCreateDrive = async () => {
     if (!newCompany || !newRole || !newPackage) return;
-    const newDrive = {
-      id: `PD00${drives.length + 1}`,
-      company: newCompany,
-      logo: newCompany[0],
-      role: newRole,
-      package: `₹${newPackage} LPA`,
-      type: newType,
-      deadline: newDeadline || "Jul 31, 2025",
-      status: "upcoming",
-      eligible: ["CSE", "IT", "ECE"],
-      minCGPA: parseFloat(newMinCGPA),
-      description: newDescription,
-      color: C.primary,
-    };
-    setDrives([newDrive, ...drives]);
-    setShowCreateModal(false);
-    // Reset fields
-    setNewCompany("");
-    setNewRole("");
-    setNewPackage("");
-    setNewMinCGPA("7.0");
-    setNewDeadline("");
-    setNewDescription("");
+    try {
+      await apiCall("/api/placements/drives", {
+        method: "POST",
+        body: JSON.stringify({
+          company: newCompany,
+          role: newRole,
+          package_lpa: parseFloat(newPackage),
+          type: newType,
+          deadline: newDeadline || null,
+          status: "upcoming",
+          eligible_departments: ["CSE", "IT", "ECE"],
+          min_cgpa: parseFloat(newMinCGPA),
+          description: newDescription
+        })
+      });
+      setShowCreateModal(false);
+      setNewCompany(""); setNewRole(""); setNewPackage(""); setNewMinCGPA("7.0"); setNewDeadline(""); setNewDescription("");
+      loadDrives();
+      loadStats();
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+  const viewApplicants = async (drive) => {
+    setSelectedDrive(drive);
+    try {
+      const data = await apiCall(`/api/placements/drives/${drive.id}/applicants`);
+      setApplicants(data || []);
+      setShowApplicantsModal(true);
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+  const changeApplicantStatus = async (applicationId, status) => {
+    try {
+      await apiCall(`/api/placements/applications/${applicationId}/status`, {
+        method: "PUT",
+        body: JSON.stringify({ status })
+      });
+      const data = await apiCall(`/api/placements/drives/${selectedDrive.id}/applicants`);
+      setApplicants(data || []);
+    } catch (err) {
+      alert(err.message);
+    }
   };
 
   const getStatusBadge = (status) => {
@@ -73,35 +132,20 @@ export default function PlacementsPage() {
     }
   };
 
+  if (loading) return <div style={{ padding: 40, textAlign: "center" }}>Loading...</div>;
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      {/* Header Banner */}
       <div style={{
         background: `linear-gradient(135deg, ${C.primary} 0%, #8B7FFF 100%)`,
-        padding: "32px",
-        borderRadius: "20px",
-        color: "#fff",
-        position: "relative",
-        overflow: "hidden"
+        padding: "32px", borderRadius: "20px", color: "#fff"
       }}>
-        <div style={{ position: "relative", zIndex: 2 }}>
-          <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 8 }}>Training & Placement Cell</h2>
-          <p style={{ fontSize: 14, color: "rgba(255,255,255,0.85)", maxWidth: "600px" }}>
-            Explore career opportunities, register for active placement drives, and track your recruitment status all in one centralized hub.
-          </p>
-        </div>
-        <div style={{
-          position: "absolute",
-          right: "20px",
-          bottom: "-20px",
-          opacity: 0.1,
-          fontSize: 140,
-          fontWeight: 900,
-          userSelect: "none"
-        }}>💼</div>
+        <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 8 }}>Training & Placement Cell</h2>
+        <p style={{ fontSize: 14, color: "rgba(255,255,255,0.85)", maxWidth: "600px" }}>
+          Explore career opportunities, register for active placement drives, and track your recruitment status.
+        </p>
       </div>
 
-      {/* Tabs / Actions */}
       <div className="cb-flex-between" style={{ flexWrap: "wrap", gap: 12 }}>
         <div style={{ display: "flex", gap: 8, background: "#fff", padding: 4, borderRadius: 12, border: `1.5px solid ${C.border}` }}>
           {[
@@ -117,18 +161,10 @@ export default function PlacementsPage() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  border: "none",
+                  display: "flex", alignItems: "center", gap: 8, border: "none",
                   background: active ? ROLE_COLORS[user.role] : "transparent",
-                  color: active ? "#fff" : C.sub,
-                  padding: "8px 16px",
-                  borderRadius: 10,
-                  fontSize: 13,
-                  fontWeight: 700,
-                  cursor: "pointer",
-                  transition: "all 0.15s"
+                  color: active ? "#fff" : C.sub, padding: "8px 16px", borderRadius: 10,
+                  fontSize: 13, fontWeight: 700, cursor: "pointer"
                 }}
               >
                 <Icon size={15} color={active ? "#fff" : C.sub} />
@@ -145,28 +181,21 @@ export default function PlacementsPage() {
         )}
       </div>
 
-      {/* Main Content Area */}
       {activeTab === "drives" && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: 20 }}>
-          {drives.map(drive => {
-            const hasApplied = appliedDrives.includes(drive.id);
+          {drives.length === 0 ? (
+            <Card p={30} style={{ textAlign: "center", color: C.sub, gridColumn: "1 / -1" }}>No placement drives posted yet.</Card>
+          ) : drives.map(drive => {
+            const hasApplied = appliedDriveIds.includes(drive.id);
             return (
               <Card key={drive.id} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                 <div className="cb-flex-between">
                   <div className="cb-flex" style={{ gap: 12 }}>
                     <div style={{
-                      width: 44,
-                      height: 44,
-                      borderRadius: 12,
-                      background: drive.color + "14",
-                      color: drive.color || C.primary,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 18,
-                      fontWeight: 800
+                      width: 44, height: 44, borderRadius: 12, background: C.primarySoft, color: C.primary,
+                      display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 800
                     }}>
-                      {drive.logo}
+                      {drive.company?.[0]}
                     </div>
                     <div>
                       <h4 style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{drive.company}</h4>
@@ -178,7 +207,7 @@ export default function PlacementsPage() {
 
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: C.text, marginBottom: 4 }}>{drive.role}</div>
-                  <p style={{ fontSize: 12.5, color: C.sub, lineHeight: 1.5, height: 38, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebKitLineClamp: 2, WebKitBoxOrient: "vertical" }}>
+                  <p style={{ fontSize: 12.5, color: C.sub, lineHeight: 1.5, height: 38, overflow: "hidden", display: "-webkit-box", WebKitLineClamp: 2, WebKitBoxOrient: "vertical" }}>
                     {drive.description}
                   </p>
                 </div>
@@ -186,33 +215,29 @@ export default function PlacementsPage() {
                 <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                   <div>
                     <div style={{ fontSize: 11, color: C.sub }}>Package</div>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>{drive.package}</div>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>₹{drive.package_lpa} LPA</div>
                   </div>
                   <div>
                     <div style={{ fontSize: 11, color: C.sub }}>Min. CGPA</div>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>{drive.minCGPA || "0.0"}</div>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: C.text }}>{drive.min_cgpa || "0.0"}</div>
                   </div>
                 </div>
 
                 <div className="cb-flex-between" style={{ marginTop: "auto", borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 4, color: C.danger }}>
                     <Icons.Clock size={12} color={C.danger} />
-                    <span style={{ fontSize: 11.5, fontWeight: 700 }}>Deadline: {drive.deadline}</span>
+                    <span style={{ fontSize: 11.5, fontWeight: 700 }}>Deadline: {drive.deadline || "N/A"}</span>
                   </div>
                   {user.role === "student" ? (
                     hasApplied ? (
                       <Badge label="Applied" color={C.success} />
                     ) : drive.status === "completed" ? (
-                      <button disabled style={{ padding: "6px 12px", border: "none", background: C.bg, color: C.sub, borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: "not-allowed" }}>
-                        Closed
-                      </button>
+                      <button disabled style={{ padding: "6px 12px", border: "none", background: C.bg, color: C.sub, borderRadius: 8, fontSize: 12, fontWeight: 700 }}>Closed</button>
                     ) : (
                       <Btn sm onClick={() => handleApply(drive)}>Apply Now</Btn>
                     )
                   ) : (
-                    <Btn sm variant="outline" onClick={() => { setSelectedDrive(drive); alert(`Edit functionality or viewing applications for ${drive.company}`); }}>
-                      Manage Candidates
-                    </Btn>
+                    <Btn sm variant="outline" onClick={() => viewApplicants(drive)}>View Applicants</Btn>
                   )}
                 </div>
               </Card>
@@ -229,32 +254,38 @@ export default function PlacementsPage() {
                 <tr style={{ background: "#F8F7FF" }}>
                   <th style={{ padding: "16px 20px" }}>Company</th>
                   <th style={{ padding: "16px 20px" }}>Role</th>
-                  <th style={{ padding: "16px 20px" }}>Type</th>
                   <th style={{ padding: "16px 20px" }}>Package</th>
                   <th style={{ padding: "16px 20px" }}>Applied Date</th>
                   <th style={{ padding: "16px 20px" }}>Status</th>
                 </tr>
               </thead>
               <tbody>
-                {drives.filter(d => appliedDrives.includes(d.id)).map(drive => (
-                  <tr key={drive.id}>
-                    <td style={{ padding: "16px 20px", fontWeight: 700, color: C.text }}>
-                      <div className="cb-flex" style={{ gap: 8 }}>
-                        <div style={{ width: 28, height: 28, borderRadius: 8, background: drive.color + "14", color: drive.color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 800 }}>
-                          {drive.logo}
-                        </div>
-                        {drive.company}
-                      </div>
-                    </td>
-                    <td style={{ padding: "16px 20px", color: C.text }}>{drive.role}</td>
-                    <td style={{ padding: "16px 20px", color: C.sub }}>{drive.type}</td>
-                    <td style={{ padding: "16px 20px", fontWeight: 700, color: C.text }}>{drive.package}</td>
-                    <td style={{ padding: "16px 20px", color: C.sub }}>Today</td>
-                    <td style={{ padding: "16px 20px" }}>
-                      <Badge label={drive.status === "completed" ? "Placed" : "In Review"} color={drive.status === "completed" ? C.success : C.primary} />
-                    </td>
-                  </tr>
-                ))}
+                {applications.length === 0 ? (
+                  <tr><td colSpan="5" style={{ padding: 32, textAlign: "center", color: C.sub }}>No applications yet.</td></tr>
+                ) : (
+                  applications.map(app => (
+                    <tr key={app.id}>
+                      <td style={{ padding: "16px 20px", fontWeight: 700 }}>{app.placement_drives?.company}</td>
+                      <td style={{ padding: "16px 20px" }}>{app.placement_drives?.role}</td>
+                      <td style={{ padding: "16px 20px", fontWeight: 700 }}>₹{app.placement_drives?.package_lpa} LPA</td>
+                      <td style={{ padding: "16px 20px", color: C.sub }}>{new Date(app.created_at).toLocaleDateString()}</td>
+                      <td style={{ padding: "16px 20px" }}>
+                        <Badge
+                          label={
+                            app.status === "placed" ? "Placed" :
+                              app.status === "shortlisted" ? "Shortlisted" :
+                                app.status === "rejected" ? "Rejected" : "In Review"
+                          }
+                          color={
+                            app.status === "placed" ? C.success :
+                              app.status === "shortlisted" ? C.orange :
+                                app.status === "rejected" ? C.danger : C.primary
+                          }
+                        />
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -269,11 +300,10 @@ export default function PlacementsPage() {
                 <Icons.Briefcase size={20} color={C.primary} />
               </div>
               <div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: C.text }}>{drives.length}</div>
-                <div style={{ fontSize: 12, color: C.sub }}>Total Companies Visited</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: C.text }}>{stats.totalDrives}</div>
+                <div style={{ fontSize: 12, color: C.sub }}>Total Companies</div>
               </div>
             </div>
-            <div style={{ fontSize: 11.5, color: C.success, fontWeight: 700 }}>+12% increase from last semester</div>
           </Card>
 
           <Card p={20}>
@@ -282,11 +312,10 @@ export default function PlacementsPage() {
                 <Icons.CheckCircle size={20} color={C.success} />
               </div>
               <div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: C.text }}>87.4%</div>
-                <div style={{ fontSize: 12, color: C.sub }}>Placement Percentage</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: C.text }}>{stats.placed}</div>
+                <div style={{ fontSize: 12, color: C.sub }}>Students Placed</div>
               </div>
             </div>
-            <div style={{ fontSize: 11.5, color: C.primary, fontWeight: 700 }}>B.Tech CSE Leading (94.2%)</div>
           </Card>
 
           <Card p={20}>
@@ -295,11 +324,10 @@ export default function PlacementsPage() {
                 <Icons.Award size={20} color={C.orange} />
               </div>
               <div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: C.text }}>₹45.0 LPA</div>
-                <div style={{ fontSize: 12, color: C.sub }}>Highest Package Offered</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: C.text }}>{stats.totalApplications}</div>
+                <div style={{ fontSize: 12, color: C.sub }}>Total Applications</div>
               </div>
             </div>
-            <div style={{ fontSize: 11.5, color: C.sub }}>Offered by Google (SDE Role)</div>
           </Card>
 
           <Card p={20}>
@@ -308,44 +336,28 @@ export default function PlacementsPage() {
                 <Icons.Activity size={20} color={C.teal} />
               </div>
               <div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: C.text }}>₹11.2 LPA</div>
-                <div style={{ fontSize: 12, color: C.sub }}>Average Package Offered</div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: C.text }}>₹{stats.avgPackage} LPA</div>
+                <div style={{ fontSize: 12, color: C.sub }}>Average Package</div>
               </div>
             </div>
-            <div style={{ fontSize: 11.5, color: C.success, fontWeight: 700 }}>+8.4% growth year-on-year</div>
           </Card>
         </div>
       )}
 
-      {/* Apply Modal */}
       {showApplyModal && selectedDrive && (
-        <div style={{
-          position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000,
-          display: "flex", alignItems: "center", justifyContent: "center", padding: 20
-        }} onClick={() => setShowApplyModal(false)}>
-          <div style={{
-            background: "#fff", padding: 28, borderRadius: 20, width: "100%", maxWidth: 440,
-            display: "flex", flexDirection: "column", gap: 18
-          }} onClick={e => e.stopPropagation()}>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={() => setShowApplyModal(false)}>
+          <div style={{ background: "#fff", padding: 28, borderRadius: 20, width: "100%", maxWidth: 440, display: "flex", flexDirection: "column", gap: 18 }} onClick={e => e.stopPropagation()}>
             <div className="cb-flex-between">
               <h3 style={{ fontSize: 16, fontWeight: 800, color: C.text }}>Apply to {selectedDrive.company}</h3>
               <button onClick={() => setShowApplyModal(false)} style={{ background: "none", border: "none", cursor: "pointer" }}>
                 <Icons.X size={18} color={C.sub} />
               </button>
             </div>
-
             <div style={{ background: "#F8F7FF", padding: 12, borderRadius: 12, fontSize: 12.5, color: C.sub }}>
               <strong>Role:</strong> {selectedDrive.role} <br />
-              <strong>Criteria:</strong> Min. CGPA {selectedDrive.minCGPA || "0.0"}
+              <strong>Criteria:</strong> Min. CGPA {selectedDrive.min_cgpa || "0.0"}
             </div>
-
-            <Input
-              label="Resume Link (Google Drive / GitHub)"
-              placeholder="https://drive.google.com/..."
-              value={resumeUrl}
-              onChange={setResumeUrl}
-            />
-
+            <Input label="Resume Link (Google Drive / GitHub)" placeholder="https://drive.google.com/..." value={resumeUrl} onChange={setResumeUrl} />
             <div className="cb-flex-between" style={{ gap: 12, marginTop: 8 }}>
               <Btn variant="outline" onClick={() => setShowApplyModal(false)} style={{ flex: 1 }}>Cancel</Btn>
               <Btn onClick={submitApplication} disabled={!resumeUrl.trim()} style={{ flex: 1 }}>Submit Application</Btn>
@@ -354,72 +366,91 @@ export default function PlacementsPage() {
         </div>
       )}
 
-      {/* Create Drive Modal (Admin/Faculty) */}
       {showCreateModal && (
-        <div style={{
-          position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000,
-          display: "flex", alignItems: "center", justifyContent: "center", padding: 20
-        }} onClick={() => setShowCreateModal(false)}>
-          <div style={{
-            background: "#fff", padding: 28, borderRadius: 20, width: "100%", maxWidth: 500,
-            display: "flex", flexDirection: "column", gap: 18, maxHeight: "90vh", overflowY: "auto"
-          }} onClick={e => e.stopPropagation()}>
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={() => setShowCreateModal(false)}>
+          <div style={{ background: "#fff", padding: 28, borderRadius: 20, width: "100%", maxWidth: 500, display: "flex", flexDirection: "column", gap: 18, maxHeight: "90vh", overflowY: "auto" }} onClick={e => e.stopPropagation()}>
             <div className="cb-flex-between">
               <h3 style={{ fontSize: 16, fontWeight: 800, color: C.text }}>Add Placement Drive</h3>
               <button onClick={() => setShowCreateModal(false)} style={{ background: "none", border: "none", cursor: "pointer" }}>
                 <Icons.X size={18} color={C.sub} />
               </button>
             </div>
-
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
               <Input label="Company Name" placeholder="Google, Microsoft, etc." value={newCompany} onChange={setNewCompany} />
               <Input label="Job Role" placeholder="e.g. SDE Intern" value={newRole} onChange={setNewRole} />
             </div>
-
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
               <Input label="Package (LPA)" placeholder="e.g. 12" value={newPackage} onChange={setNewPackage} />
               <div className="cb-input-wrap">
                 <label className="cb-label">Job Type</label>
-                <select
-                  value={newType}
-                  onChange={e => setNewType(e.target.value)}
-                  style={{
-                    width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 12,
-                    padding: 10, fontSize: 13.5, background: "#F8F7FF", outline: "none",
-                    fontFamily: "inherit", color: C.text
-                  }}
-                >
+                <select value={newType} onChange={e => setNewType(e.target.value)} style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 12, padding: 10, fontSize: 13.5, background: "#F8F7FF", outline: "none" }}>
                   <option value="Full-time">Full-time</option>
                   <option value="Internship">Internship</option>
                   <option value="Contract">Contract</option>
                 </select>
               </div>
             </div>
-
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
               <Input label="Min. CGPA Criteria" placeholder="e.g. 7.5" value={newMinCGPA} onChange={setNewMinCGPA} />
               <Input label="Registration Deadline" type="date" value={newDeadline} onChange={setNewDeadline} />
             </div>
-
             <div className="cb-input-wrap">
               <label className="cb-label">Role Description</label>
-              <textarea
-                placeholder="Job description, expectations, eligibility..."
-                rows={3}
-                value={newDescription}
-                onChange={e => setNewDescription(e.target.value)}
-                style={{
-                  width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 12,
-                  padding: 10, fontSize: 13.5, background: "#F8F7FF", outline: "none",
-                  fontFamily: "inherit", color: C.text, resize: "none"
-                }}
-              />
+              <textarea placeholder="Job description, expectations, eligibility..." rows={3} value={newDescription} onChange={e => setNewDescription(e.target.value)} style={{ width: "100%", border: `1.5px solid ${C.border}`, borderRadius: 12, padding: 10, fontSize: 13.5, background: "#F8F7FF", outline: "none", resize: "none" }} />
             </div>
-
             <div className="cb-flex-between" style={{ gap: 12, marginTop: 8 }}>
               <Btn variant="outline" onClick={() => setShowCreateModal(false)} style={{ flex: 1 }}>Cancel</Btn>
               <Btn onClick={handleCreateDrive} style={{ flex: 1 }}>Create Drive</Btn>
             </div>
+          </div>
+        </div>
+      )}
+      {showApplicantsModal && selectedDrive && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={() => setShowApplicantsModal(false)}>
+          <div style={{ background: "#fff", padding: 28, borderRadius: 20, width: "100%", maxWidth: 600, maxHeight: "80vh", overflowY: "auto", display: "flex", flexDirection: "column", gap: 18 }} onClick={e => e.stopPropagation()}>
+            <div className="cb-flex-between">
+              <h3 style={{ fontSize: 16, fontWeight: 800, color: C.text }}>Applicants for {selectedDrive.company}</h3>
+              <button onClick={() => setShowApplicantsModal(false)} style={{ background: "none", border: "none", cursor: "pointer" }}>
+                <Icons.X size={18} color={C.sub} />
+              </button>
+            </div>
+            {applicants.length === 0 ? (
+              <div style={{ textAlign: "center", color: C.sub, padding: 20 }}>No applicants yet.</div>
+            ) : (
+              <table className="cb-table" style={{ width: "100%" }}>
+                <thead>
+                  <tr style={{ background: "#F8F7FF" }}>
+                    <th style={{ padding: "10px 14px", textAlign: "left" }}>Roll No</th>
+                    <th style={{ padding: "10px 14px", textAlign: "left" }}>Name</th>
+                    <th style={{ padding: "10px 14px", textAlign: "left" }}>Resume</th>
+                    <th style={{ padding: "10px 14px", textAlign: "left" }}>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {applicants.map(a => (
+                    <tr key={a.id}>
+                      <td style={{ padding: "10px 14px" }}>{a.students?.enrollment_no}</td>
+                      <td style={{ padding: "10px 14px" }}>{a.students?.users?.name}</td>
+                      <td style={{ padding: "10px 14px" }}>
+                        <a href={a.resume_url} target="_blank" rel="noreferrer" style={{ color: C.primary, fontWeight: 700 }}>View Resume</a>
+                      </td>
+                      <td style={{ padding: "10px 14px" }}>
+                        <select
+                          value={a.status}
+                          onChange={e => changeApplicantStatus(a.id, e.target.value)}
+                          style={{ border: `1.5px solid ${C.border}`, borderRadius: 8, padding: "6px 10px", fontSize: 12, fontWeight: 700 }}
+                        >
+                          <option value="applied">Applied</option>
+                          <option value="shortlisted">Shortlisted</option>
+                          <option value="placed">Placed</option>
+                          <option value="rejected">Rejected</option>
+                        </select>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       )}
