@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { C, ROLE_COLORS, ROLE_LABELS } from "../../constants/colors";
 import { NAV_ITEMS } from "../../constants/data";
@@ -196,11 +196,35 @@ const PAGE_TITLE_MAP = {
 };
 
 export function Topbar({ onMenu, collapsed }) {
-  const { user } = useApp();
+  const { user, apiCall } = useApp();
   const location = useLocation();
   const rc = ROLE_COLORS[user.role];
   const page = location.pathname.split("/")[2] || "dashboard";
   const title = PAGE_TITLE_MAP[page] || "Dashboard";
+
+  const [anns, setAnns] = useState([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    apiCall("/api/announcements")
+      .then(data => {
+        setAnns(data || []);
+        const lastSeen = localStorage.getItem(`anns_last_seen_${user.id}`);
+        const lastSeenTime = lastSeen ? new Date(lastSeen) : new Date(0);
+        const unread = (data || []).filter(a => new Date(a.created_at) > lastSeenTime).length;
+        setUnreadCount(unread);
+      })
+      .catch(err => console.error(err));
+  }, [user]);
+
+  const handleBellClick = () => {
+    setShowDropdown(!showDropdown);
+    if (!showDropdown) {
+      localStorage.setItem(`anns_last_seen_${user.id}`, new Date().toISOString());
+      setUnreadCount(0);
+    }
+  };
 
   return (
     <header className="cb-topbar">
@@ -221,17 +245,56 @@ export function Topbar({ onMenu, collapsed }) {
 
       <div className="cb-flex cb-gap-4">
         {/* Notifications Bell */}
-        <button style={{
-          width: 36, height: 36, borderRadius: 10, background: C.surface,
-          border: "none", cursor: "pointer", display: "flex",
-          alignItems: "center", justifyContent: "center", position: "relative",
-        }}>
-          <Icons.Bell size={16} color={C.sub} />
-          <span style={{
-            position: "absolute", top: 7, right: 7, width: 8, height: 8,
-            borderRadius: "50%", background: C.danger, border: "2px solid #EEEEFF",
-          }} />
-        </button>
+        <div style={{ position: "relative" }}>
+          <button
+            onClick={handleBellClick}
+            style={{
+              width: 36, height: 36, borderRadius: 10, background: C.surface,
+              border: "none", cursor: "pointer", display: "flex",
+              alignItems: "center", justifyContent: "center", position: "relative",
+            }}
+          >
+            <Icons.Bell size={16} color={C.sub} />
+            {unreadCount > 0 && (
+              <span style={{
+                position: "absolute", top: 4, right: 4, minWidth: 16, height: 16,
+                borderRadius: "50%", background: C.danger, border: "2px solid #EEEEFF",
+                fontSize: 9, fontWeight: 800, color: "#fff",
+                display: "flex", alignItems: "center", justifyContent: "center", padding: "0 3px"
+              }}>
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </button>
+
+          {showDropdown && (
+            <>
+              <div onClick={() => setShowDropdown(false)} style={{ position: "fixed", inset: 0, zIndex: 998 }} />
+              <div style={{
+                position: "absolute", top: 46, right: 0, width: 320, maxHeight: 400, overflowY: "auto",
+                background: "#fff", borderRadius: 14, boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+                zIndex: 999, padding: 12
+              }}>
+                <div style={{ fontSize: 13, fontWeight: 800, color: C.text, padding: "4px 8px 10px" }}>Announcements</div>
+                {anns.length === 0 ? (
+                  <div style={{ textAlign: "center", color: C.sub, padding: 20, fontSize: 12.5 }}>No announcements yet.</div>
+                ) : (
+                  anns.slice(0, 8).map((a, idx) => (
+                    <div key={a.id} style={{ padding: "10px 8px", borderBottom: idx !== Math.min(anns.length, 8) - 1 ? `1px solid ${C.border}` : "none" }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: C.text }}>{a.title}</div>
+                      <p style={{ fontSize: 11.5, color: C.sub, marginTop: 3, lineHeight: 1.4 }}>
+                        {a.content?.length > 80 ? a.content.substring(0, 80) + "..." : a.content}
+                      </p>
+                      <div style={{ fontSize: 10, color: C.sub, marginTop: 4 }}>
+                        {new Date(a.created_at).toLocaleDateString()} &bull; {a.users?.name || "System"}
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </>
+          )}
+        </div>
 
         <div style={{
           display: "flex", alignItems: "center", gap: 10,

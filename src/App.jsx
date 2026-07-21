@@ -38,7 +38,11 @@ import AdminLogs from "./pages/admin/AdminLogs";
 
 // ─── Route Guards ─────────────────────────────────────────────────────────────
 function ProtectedRoute({ allowedRole }) {
-  const { user } = useApp();
+  const { user, loading } = useApp();
+
+  if (loading) {
+    return null; // wait for session check to finish before deciding
+  }
 
   if (!user) {
     return <Navigate to="/login" replace />;
